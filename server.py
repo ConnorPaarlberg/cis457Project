@@ -4,7 +4,7 @@ import socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Get the local machine name
-host = socket.gethostname()
+host = '0.0.0.0'
 
 # Reserve a port for your service.
 port = 12345
@@ -16,16 +16,17 @@ server_socket.bind((host, port))
 server_socket.listen(5)
 
 while True:
-    # Accept a connection
-    client_socket, addr = server_socket.accept()
-    print('Got connection from', addr)
+        client_socket, addr = server_socket.accept()
+        print('Got connection from', addr)
 
-    # Receive the message
-    message = client_socket.recv(1024)
-    print('Received message:', message.decode())
+        try: 
+            while True:
+                # Receive the message
+                message = client_socket.recv(1024)
+                print('Received message:', message.decode())
 
-    # Send a response
-    client_socket.send('Message received'.encode())
-
-    # Close the connection
-    client_socket.close()
+                # Send a response
+                client_socket.send('Message received'.encode())
+        finally:
+            # Close the connection
+            client_socket.close()
