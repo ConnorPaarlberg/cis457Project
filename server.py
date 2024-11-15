@@ -16,20 +16,22 @@ class Server:
     self.socket.listen(5)
   
   def run(self):
-    while(True):
-        # Accept a connection
-        client_socket, addr = self.socket.accept()
-        print('Got connection from', addr)
+    # Accept a connection
+    client_socket, addr = self.socket.accept()
+    print( 'Got connection from', addr)
 
+    while(True):
         # Receive the message
-        message = client_socket.recv(1024)
-        print('Received message:', message.decode())
+        message = client_socket.recv(1024).decode()
+        print('Received message:', message)
 
         # Send a response
         client_socket.send('Message received'.encode())
 
-        # Close the connection
-        client_socket.close()
+        if message == 'exit':
+            # Close the connection
+            client_socket.close()
+            break
 
 def main():
   port_number = int(sys.argv[1])

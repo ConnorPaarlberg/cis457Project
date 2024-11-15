@@ -12,17 +12,23 @@ class Client:
     self.socket.connect((server_ip, port_number))
   
   def run(self):
-    # Send a message
-    message = 'Hello, server!'
-    self.socket.send(message.encode())
+    while(True):
+      # prompt the user for input
+      message = input("Enter a message: ")
 
-    # Receive a response
-    response = self.socket.recv(1024)
-    print('Received response:', response.decode())
+      self.socket.send(message.encode()) # send the message
 
-    # Close the connection
-    self.socket.close()
+      # Receive a response
+      response = self.socket.recv(1024)
+      print('Received response:', response.decode())
 
+      # exit the loop if the user types
+      if message.lower() == 'exit':
+        print("Closing connection")
+        self.socket.close() # close the connection
+        break
+
+    
 def main():
   # Get the server IP
   server_ip = sys.argv[1]
