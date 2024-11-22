@@ -69,18 +69,61 @@ class Board:
             ship_available = True
             if vertical_placement_bool:
                 for i in range(ship_length):
-                    if self.battlefield[Xaxis][Yaxis+i].ship != Square_SHIP.NOTHING:
-                        ship_available = False
-                if ship_available:
-                    for i in range(ship_length):
-                        self.battlefield[Xaxis][Yaxis+i].ship = ship
-                        self.number_of_ships_placed += 1 
-
-            else:
-                for i in range(ship_length):
                     if self.battlefield[Xaxis+i][Yaxis].ship != Square_SHIP.NOTHING:
                         ship_available = False
                 if ship_available:
                     for i in range(ship_length):
                         self.battlefield[Xaxis+i][Yaxis].ship = ship
-                        self.number_of_ships_placed += 1        
+                        self.number_of_ships_placed += 1 
+
+            else:
+                for i in range(ship_length):
+                    if self.battlefield[Xaxis][Yaxis+i].ship != Square_SHIP.NOTHING:
+                        ship_available = False
+                if ship_available:
+                    for i in range(ship_length):
+                        self.battlefield[Xaxis][Yaxis+i].ship = ship
+                        self.number_of_ships_placed += 1      
+
+    def print_board_state(self):
+        print_list = []
+
+        for i in range (10):
+            for j in range (10):
+                print_list.append("|")
+                current_square_state = self.battlefield[i][j].state
+                if current_square_state == Square_State.NOT_TOUCHED:
+                    print_list.append("-")
+                elif current_square_state == Square_State.MISS:
+                    print_list.append("X")
+                else:
+                    print_list.append("O")
+            print_list.append("|")
+            print_list.append("\n")
+
+        print("".join(print_list))
+
+    def print_board_ships(self):
+        print_list = []
+
+        for i in range (10):
+            for j in range (10):
+                print_list.append("|")
+                current_square_state = self.battlefield[i][j].ship
+                if current_square_state == Square_SHIP.NOTHING:
+                    print_list.append("--")
+                elif current_square_state == Square_SHIP.CARRIER:
+                    print_list.append("CA")
+                elif current_square_state == Square_SHIP.BATTLESHIP:
+                    print_list.append("BA")
+
+                elif current_square_state == Square_SHIP.CRUISER:
+                    print_list.append("CR")
+                elif current_square_state == Square_SHIP.SUBMARINE:
+                    print_list.append("SU")
+                else:
+                    print_list.append("DE")
+                
+            print_list.append("|")
+            print_list.append("\n")
+        print("".join(print_list))
