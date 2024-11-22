@@ -1,5 +1,6 @@
 import sys
 import socket
+import select
 import threading
 
 class Client:
@@ -17,29 +18,33 @@ class Client:
   
   def send_messages(self):
     while not self.quit_event.is_set():
+      # Use select to wait for user input with a timeout so that quit_event is checked regularly
+      readable, _, _ = select.select([sys.stdin], [], [], 1)  # 1-second timeout
 
-      # prompt the user for input
-      message = input()
+      if readable:
+        message = input()
 
-      self.socket.send(message.encode()) # send the message
+        self.socket.send(message.encode())  # send the message
 
-      if message.lower() == "exit":
-        self.quit_event.set() # signal to quit
-        break
+        if message.lower() == "exit":
+            self.quit_event.set()  # signal to quit
+            break
   
   def receive_messages(self):
     while not self.quit_event.is_set():
-      # receive the response
-      response = self.socket.recv(1024).decode()
+      # Use select to wait for data with a timeout so that the quit_event is checked regularly
+      readable, _, _ = select.select([self.socket], [], [], 1)  # 1-second timeout
 
-      if response == '':
-        continue
+      if readable:
+        response = self.socket.recv(1024).decode()
+        if response == '':
+            continue
 
-      print(response)
+        print(response)
 
-      if response.lower() == "exit":
-        self.quit_event.set() # signal to quit
-        break
+        if response.lower() == "exit":
+            self.quit_event.set()  # signal to quit
+            break
 
   def run(self):
     sender_thread = threading.Thread(target=self.send_messages, daemon=False) # create the sender thread
