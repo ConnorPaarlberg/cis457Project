@@ -20,31 +20,37 @@ class Server:
     # a list of the client sockets
     self.clients = []
 
-  def handle_client(self, client_socket, client_address):
-    print(f"Conneced to {client_address}")
+    # event for signaling threads to quit
+    self.quit_event = threading.Event() 
 
-    while(True):
+  def handle_client(self, client_socket, client_address):
+    print(f"Connected to {client_address}")
+
+    while not self.quit_event.is_set():
       # Receive the message
       message = client_socket.recv(1024).decode()
       print('Received message:', message)
 
-      # Send a response
-      client_socket.send('Message received'.encode())
+      # # Send a response
+      # client_socket.send('Message received'.encode())
+
+      for connected_socket in self.clients:
+        if client_socket != connected_socket:
+          connected_socket.send(message.encode())
 
       if message == 'exit':
-        print("Closing connection")
-        client_socket.close() # close the connection
         break
-    
+
+    self.quit_event.set() # signal to quit
     self.clients.remove(client_socket)
-    client_socket.close()
+    client_socket.close() # close the connection
     print(f"Connection to {client_address} closed")
   
   def run(self):
     print("Server is running...")
 
+    threads = []
     while len(self.clients) < self.num_clients:
-      threads = []
 
       # Accept a connection
       client_socket, client_address = self.socket.accept()
