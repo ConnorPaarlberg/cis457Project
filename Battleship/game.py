@@ -1,4 +1,4 @@
-from Battleship import *
+from battleship import *
 
 def get_coordinate_input(message):
     if len(message) > 0:
