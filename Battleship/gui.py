@@ -60,10 +60,12 @@ def main():
 
     for event in pg.event.get():
         if event.type == QUIT:
-            game_running = False
+          game_running = False
         elif event.type == KEYDOWN:
-            if event.key == K_ESCAPE:
-                game_running = False
+          if event.key == K_ESCAPE:
+            game_running = False
+          if event.key == K_SPACE:
+            print('hi')
     
     # Clear the screen
     screen.fill((0,0,0))
