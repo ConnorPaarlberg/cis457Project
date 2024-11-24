@@ -2,14 +2,41 @@ import pygame as pg
 import os
 from pygame.locals import *
 
+# baseline gameplay screen
+def play_game():
+  # Initialize Pygame
+  pg.init()
+
+  # Set the name of the display
+  pg.display.set_caption("BATTLESHIP GAMEPLAY")
+
+  # Create a screen object
+  screen = pg.display.set_mode([1024, 768])
+
+  # Placeholder for game loop
+  game_running = True
+  while game_running:
+      for event in pg.event.get():
+          if event.type == QUIT:
+              game_running = False
+          elif event.type == KEYDOWN:
+              if event.key == K_ESCAPE:
+                  game_running = False
+  
+  # Clear the screen
+  screen.fill((0, 0, 0))
+
+  pg.quit()
+
+
 def main():
   # Initialize Pygame
   pg.init()
 
   # Set the name of the display
-  pg.display.set_caption("BATTLESHIP")
+  pg.display.set_caption("BATTLESHIP START SCREEN")
   
-  battleship_icon_path = os.path.join("Battleship",'assets', 'battleship_icon.jpg')
+  battleship_icon_path = os.path.join('assets', 'battleship_icon.jpg')
   battleship_icon = pg.image.load(battleship_icon_path)
   # Set the icon of the display
   pg.display.set_icon(battleship_icon)
@@ -17,13 +44,13 @@ def main():
   # Create a screen object
   screen = pg.display.set_mode([1024, 768])
 
-  start_gif_folder = "Battleship/assets/battleship_start_gif"
+  start_gif_folder = "assets/battleship_start_gif"
   frames = [pg.image.load(os.path.join(start_gif_folder, frame_name)) for frame_name in os.listdir(start_gif_folder)]
 
   # Resize frames to fit the screen
   frames = [pg.transform.scale(frame, (1024, 768)) for frame in frames] 
 
-  battleship_logo_path = os.path.join('Battleship', 'assets', 'battleship_logo.png')
+  battleship_logo_path = os.path.join('assets', 'battleship_logo.png')
   battleship_logo = pg.image.load(battleship_logo_path)
 
   # resize logo
@@ -33,7 +60,7 @@ def main():
   logo_x = 10
   logo_y = 10
 
-  font_path = os.path.join("Battleship", "assets", "USAAF_FONT", "USAAF_Stencil.ttf")
+  font_path = os.path.join("assets", "USAAF_FONT", "USAAF_Stencil.ttf")
 
   # setup text
   font = pg.font.Font(font_path, 50) # default font, size 50
@@ -65,7 +92,7 @@ def main():
           if event.key == K_ESCAPE:
             game_running = False
           if event.key == K_SPACE:
-            print('hi')
+            play_game()
     
     # Clear the screen
     screen.fill((0,0,0))
