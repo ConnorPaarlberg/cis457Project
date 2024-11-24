@@ -96,13 +96,31 @@ class Gui:
 
       # control the frame rate
       clock.tick(fps)
-  
+    
+  def display_gameplay(self):
+    while self.game_state == GameState.MAIN_GAME:
+      for event in pg.event.get():
+        if event.type == QUIT:
+          self.game_running = False
+          self.game_state = None
+
+        elif event.type == KEYDOWN:
+          if event.key == K_ESCAPE:
+            self.game_running = False
+            self.game_state = None
+      
+      # clear the screen
+      self.screen.fill((0,0,0))
+
+      # update the display
+      pg.display.flip()
+
   def run(self):
     while self.game_running:
       if self.game_state == GameState.START_SCREEN:
         self.display_start_screen()
       elif self.game_state == GameState.MAIN_GAME:
-        print("hi")
+        self.display_gameplay()
 
     pg.quit()
 
