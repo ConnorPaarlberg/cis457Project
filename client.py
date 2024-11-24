@@ -10,7 +10,7 @@ server_ip = sys.argv[1]
 # Connect to the server
 client_socket.connect((server_ip, 12345))
 
-print("Connected to the server. Type your messages below.\n")
+print("Connected to the server. Type your messages below. (exit to quit)\n")
 
 
 while True:

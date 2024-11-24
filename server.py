@@ -15,18 +15,19 @@ server_socket.bind((host, port))
 # Listen for incoming connections
 server_socket.listen(5)
 
+client_socket, addr = server_socket.accept()
+print('Got connection from', addr)
+
 while True:
-        client_socket, addr = server_socket.accept()
-        print('Got connection from', addr)
+        # Receive the message
+        message = client_socket.recv(1024)
+        print('Received message:', message.decode())
 
-        try: 
-            while True:
-                # Receive the message
-                message = client_socket.recv(1024)
-                print('Received message:', message.decode())
-
-                # Send a response
-                client_socket.send('Message received'.encode())
-        finally:
+        if message.decode() == 'exit':
             # Close the connection
             client_socket.close()
+            break
+
+        # Send a response
+        client_socket.send('Message received'.encode())
+
