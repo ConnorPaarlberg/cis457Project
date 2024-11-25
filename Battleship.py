@@ -35,6 +35,7 @@ class Square:
             print("You missed!")
             return False
 
+
 class Board:
     def __init__(self):
 
@@ -63,14 +64,24 @@ class Board:
         match hurt_ship:
             case Square_SHIP.CARRIER:
                 self.carrier_hp-=1
+                if self.carrier_hp == 0:
+                    print("My Carrier is dead!")
             case Square_SHIP.BATTLESHIP:
                 self.battleship_hp-=1
+                if self.battleship_hp == 0:
+                    print("My Battleship is dead!")
             case Square_SHIP.CRUISER:
                 self.cruiser_hp -=1
+                if self.cruiser_hp == 0:
+                    print("My Cruiser is dead!")
             case Square_SHIP.SUBMARINE:
                 self.submarine_hp -=1
+                if self.submarine_hp == 0:
+                    print("My Submarine is dead!")
             case Square_SHIP.DESTROYER:
                 self.destroyer_hp -=1
+                if self.destroyer_hp == 0:
+                    print("My Destroyer is dead")
         if self.check_dead_board() == True:
             print("This board is now dead")
             self.state = Board_State.DEAD
