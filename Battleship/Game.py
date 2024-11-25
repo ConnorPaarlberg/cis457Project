@@ -52,22 +52,27 @@ def attack_board(target_board):
     else:
         print("This square has already been revealed!")
 
-Current_Board = Board()
+def main():
 
-Current_Board.print_board_ships()
+    Current_Board = Board()
 
-build_board(Current_Board, Square_SHIP.CARRIER, 5, "Where should the carrier go?")
-
-build_board(Current_Board, Square_SHIP.BATTLESHIP, 4, "Where should the battleship go?")
-
-build_board(Current_Board, Square_SHIP.CRUISER, 3, "Where should the cruiser go?")
-
-build_board(Current_Board, Square_SHIP.SUBMARINE, 3, "Where should the submarine go?")
-
-build_board(Current_Board, Square_SHIP.DESTROYER, 2, "Where should the destroyer go?")
-
-
-while Current_Board.state == Board_State.ALIVE: 
-    attack_board(Current_Board)
     Current_Board.print_board_ships()
-    Current_Board.print_board_state()
+
+    build_board(Current_Board, Square_SHIP.CARRIER, 5, "Where should the carrier go?")
+
+    build_board(Current_Board, Square_SHIP.BATTLESHIP, 4, "Where should the battleship go?")
+
+    build_board(Current_Board, Square_SHIP.CRUISER, 3, "Where should the cruiser go?")
+
+    build_board(Current_Board, Square_SHIP.SUBMARINE, 3, "Where should the submarine go?")
+
+    build_board(Current_Board, Square_SHIP.DESTROYER, 2, "Where should the destroyer go?")
+
+
+    while Current_Board.state == Board_State.ALIVE: 
+        attack_board(Current_Board)
+        Current_Board.print_board_ships()
+        Current_Board.print_board_state()
+
+if __name__ == "__main__":
+    main()
