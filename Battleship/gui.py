@@ -98,6 +98,29 @@ class Gui:
       clock.tick(fps)
     
   def display_gameplay(self):
+    GRID_SIZE = 10 # 10x10 grid
+    SQUARE_SIZE = 50 # the size of each square
+    BOARD_DIMENSION = GRID_SIZE * SQUARE_SIZE
+
+    background_image_path = os.path.join("Battleship", "assets", "black_background.png")
+    background_image = pg.image.load(background_image_path)
+    background_image = pg.transform.scale(background_image, self.dimensions)
+
+    battleship_icon_path = os.path.join("Battleship", "assets", "battleship_logo2.png")
+    battleship_icon = pg.image.load(battleship_icon_path)
+    battleship_icon = pg.transform.scale(battleship_icon, (500, 125))
+
+    icon_rect = self.battleship_icon.get_rect()
+    icon_rect.center = (530, 270)
+
+    game_board = pg.Rect(0, 0,  BOARD_DIMENSION, BOARD_DIMENSION)
+
+    start_x = (self.dimensions[0] - BOARD_DIMENSION) // 2
+    start_y = (self.dimensions[1] - BOARD_DIMENSION) // 2
+
+    selected_row = 0
+    selected_col = 0
+
     while self.game_state == GameState.MAIN_GAME:
       for event in pg.event.get():
         if event.type == QUIT:
@@ -108,9 +131,47 @@ class Gui:
           if event.key == K_ESCAPE:
             self.game_running = False
             self.game_state = None
-      
+
+          elif event.key == K_UP:
+             selected_row = max(0, selected_row - 1)
+          elif event.key == K_DOWN:
+             selected_row = min(GRID_SIZE - 1, selected_row + 1)
+          elif event.key == K_LEFT:
+             selected_col = max(0, selected_col - 1)
+          elif event.key == K_RIGHT:
+             selected_col = min(GRID_SIZE - 1, selected_col + 1)
+        
+        elif event.type == MOUSEBUTTONDOWN:
+          if event.button == 1: # the left mouse button was clicked
+            mouse_x, mouse_y = pg.mouse.get_pos()
+
+            if (start_x <= mouse_x <= start_x + BOARD_DIMENSION) and \
+              (start_y <= mouse_y <= start_y + BOARD_DIMENSION):
+              col = (mouse_x - start_x) // SQUARE_SIZE
+              row = (mouse_y - start_y) // SQUARE_SIZE
+              selected_col = col
+              selected_row = row
+              print(f"Clicked on square at row {row}, column {col}")
+
       # clear the screen
       self.screen.fill((0,0,0))
+
+      # draw the background image
+      self.screen.blit(background_image, (0,0))
+
+      # draw the battleship logo
+      self.screen.blit(battleship_icon, icon_rect)
+
+      # draw the battleship grid
+      for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                rect = pg.Rect(start_x + col * SQUARE_SIZE, start_y + row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
+                pg.draw.rect(self.screen, (255, 255, 255),
+                             rect, 2)
+
+                if row == selected_row and col == selected_col:
+                   pg.draw.rect(self.screen, (255, 255, 0), rect, 4)
+
 
       # update the display
       pg.display.flip()
@@ -121,6 +182,8 @@ class Gui:
         self.display_start_screen()
       elif self.game_state == GameState.MAIN_GAME:
         self.display_gameplay()
+      elif self.game_state == GameState.GAME_OVER:
+        pass
 
     pg.quit()
 

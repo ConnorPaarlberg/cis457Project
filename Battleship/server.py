@@ -1,8 +1,11 @@
 import sys
 import socket
+import struct
 import threading
 
 class Server:
+  player_id = 1
+  battleship_turn = 1
   def __init__(self, port_number, num_clients):
     self.server_ip = '0.0.0.0'     # accept connections on all network interfaces
     self.port_number = port_number # the port number to use
@@ -28,18 +31,24 @@ class Server:
 
     while not self.quit_event.is_set():
       # Receive the message
-      message = client_socket.recv(1024).decode()
+      message = client_socket.recv(4096).decode()
       print('Received message:', message)
 
-      # # Send a response
-      # client_socket.send('Message received'.encode())
+      # send a response
+      data = struct.pack('!i', Server.player_id)
+      client_socket.send(data)
+      Server.player_id += 1 # increment the player ID
 
-      for connected_socket in self.clients:
-        if client_socket != connected_socket:
-          connected_socket.send(message.encode())
+      data = struct.pack('!i', Server.battleship_turn)
+      client_socket.send(data)
+      
+      # # send the message to the other client
+      # for connected_socket in self.clients:
+      #   if client_socket != connected_socket:
+      #     connected_socket.send(message.encode())
 
-      if message == 'exit':
-        break
+      # if message == 'exit':
+      #   break
 
     self.quit_event.set() # signal to quit
     self.clients.remove(client_socket)

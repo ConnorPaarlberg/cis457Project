@@ -1,4 +1,8 @@
 from enum import Enum
+from gui import Gui
+from client import Client
+import sys
+import json
 
 class Board_State(Enum):
     ALIVE = 1
@@ -10,12 +14,12 @@ class Square_State(Enum):
     HIT = 5
 
 class Square_SHIP(Enum):
-    NOTHING = 6
-    CARRIER = 7
-    BATTLESHIP = 8
-    CRUISER = 9
-    SUBMARINE = 10
-    DESTROYER = 11
+    NOTHING = 0
+    CARRIER = 5
+    BATTLESHIP = 4
+    CRUISER = 3
+    SUBMARINE = 3
+    DESTROYER = 2
 
 class Square:
     def __init__(self):
@@ -175,3 +179,132 @@ class Board:
             print_list.append("\n")
         print("".join(print_list))
 
+    def to_dict(self):
+        # Serialize the board's state
+        board_dict = {
+            "state": self.state.name,
+            "battlefield": [
+                [
+                    {
+                        "state": square.state.name,
+                        "ship": square.ship.name
+                    }
+                    for square in row
+                ]
+                for row in self.battlefield
+            ],
+            "carrier_hp": self.carrier_hp,
+            "battleship_hp": self.battleship_hp,
+            "cruiser_hp": self.cruiser_hp,
+            "submarine_hp": self.submarine_hp,
+            "destroyer_hp": self.destroyer_hp,
+            "number_of_ships_placed": self.number_of_ships_placed,
+        }
+        return board_dict
+    
+    def to_json(self):
+        return json.dumps(self.to_dict(), indent=2)
+
+class BattleShip:
+    def __init__(self, server_ip, port_number):
+        self.board = Board() # the game board
+        # self.gui = Gui() # the gui for displaying the game
+        self.client = Client(server_ip, port_number) # the client
+
+        self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
+        Square_SHIP.DESTROYER]
+    
+    def play(self):
+        # self.gui.run()
+        
+        self.build_board() # build the game board
+        initial_board = self.board.to_json() # convert the game board to a json
+
+        self.client.send_message(initial_board) # send the inital board state
+
+        player_number = self.client.receive_message("INT") # receive the player number
+        game_turn = self.client.receive_message("INT") # recieve the game turn
+
+        print(player_number)
+        print(game_turn)
+
+        # while self.board.state == Board_State.ALIVE:
+            
+        # opponent_board = self.client.receive_message("JSON")
+        # print(opponent_board)
+
+        # while self.board.state == Board_State.ALIVE: 
+        #     self.attack_board(self.board)
+        #     self.board.print_board_ships()
+        #     self.board.print_board_state()
+            
+        #     # json_data = self.board.to_json()
+        #     # print(json_data)
+
+        #     # # Print the size of the JSON data in bytes
+        #     # print("Size of JSON data:", sys.getsizeof(json_data))
+
+    def get_coordinate_input(self, message):
+        if len(message) > 0:
+            print(message)
+
+        coordinates = input().split(' ')
+        if len(coordinates) != 2:
+            print("Invalid Input")
+            self.get_coordinate_input(message)
+
+        try:
+            xaxis = int(coordinates[0])
+            yaxis = int(coordinates[1])
+        except Exception:
+            print("Invalid Input")
+
+        else:
+            if(xaxis > 9 or xaxis < 0 or yaxis > 9 or yaxis < 0):
+                print("Coordinates not on board")
+                self.get_coordinate_input(message)
+            else:
+                return [xaxis,yaxis]
+        
+    def get_vertical_bool(self):
+        print("Are you placing it vertically? (y/n)")
+        vertical_bool = input()
+        if vertical_bool == 'y':
+            return True
+        else: return False
+
+    def build_board(self):
+        for ship in self.ships:
+            self.board.print_board_ships()
+            message = f"Where should the {ship.name.lower()} go?"
+            location = self.get_coordinate_input(message)
+            length = ship.value
+
+            while self.board.place_ship_on_board(location, ship, length, self.get_vertical_bool()) == False:
+                print("Invalid Placement, try again!")
+                location = self.get_coordinate_input("")
+    
+    # def attack_board(target_board):
+    #     #TODO Check for valid location
+    #     coordinates = get_coordinate_input("Where should we attack?")
+    #     xaxis = coordinates[0]
+    #     yaxis = coordinates[1]
+    #     target_square = target_board.battlefield[xaxis][yaxis]
+
+    #     if target_square.state == Square_State.NOT_TOUCHED:
+    #         target_square.square_attacked()
+    #         target_board.decrement_ship_health(target_square.ship)
+
+    #     else:
+    #         print("This square has already been revealed!")
+
+def main():
+  # Get the server IP
+  server_ip = sys.argv[1]
+  port_number = int(sys.argv[2])
+
+  battleship = BattleShip(server_ip, port_number)
+  battleship.play()
+
+if __name__ == "__main__":
+    main()
