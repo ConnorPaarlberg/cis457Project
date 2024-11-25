@@ -3,6 +3,9 @@ import socket
 import select
 import threading
 
+from Battleship.Game import *
+from Battleship.Battleship import *
+
 class Client:
   def __init__(self, server_ip, port_number):
     self.server_ip = server_ip # the passed in IP address of the server
@@ -66,7 +69,14 @@ def main():
   port_number = int(sys.argv[2])
 
   client = Client(server_ip, port_number)
-  client.run()
+  
+  try:
+    client.run()
+  except KeyboardInterrupt:
+    print("\nShutting down client...")
+  finally:
+    client.socket.close()
+    print("Client socket closed")
 
 if __name__ == '__main__':
   main()

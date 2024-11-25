@@ -174,4 +174,5 @@ class Board:
             print_list.append("|")
             print_list.append("\n")
         print("".join(print_list))
+        return "".join(print_list)
 
