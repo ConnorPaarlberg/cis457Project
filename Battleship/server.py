@@ -5,7 +5,7 @@ import threading
 import json
 
 class Server:
-  player_id = 1 # the id of the connecting player (increments each time a client connects)
+  player_id = 1
   def __init__(self, port_number, num_clients):
     self.server_ip = '0.0.0.0'     # accept connections on all network interfaces
     self.port_number = port_number # the port number to use
@@ -21,16 +21,18 @@ class Server:
   def handle_client(self, client_socket, client_address):
     print(f"Connected to {client_address}")
 
-    self.send_message(client_socket, Server.player_id) # send the player ID to the client
+    data = struct.pack('!i', Server.player_id) # pack the player id
+    client_socket.send(data) # send the player id
     Server.player_id += 1 # increment the player ID
 
     while not self.quit_event.is_set():
-      message = self.receive_message(client_socket) # receive the message
+      # Receive the message
+      message = client_socket.recv(8)
 
-      # send the message to the other client (only 2 clients supported currently)
+      # send the message to the other client
       for connected_socket in self.clients:
         if client_socket != connected_socket:
-          self.send_message(connected_socket, message)
+          connected_socket.send(message)
 
       # if message == 'exit':
       #   break
@@ -40,22 +42,6 @@ class Server:
     # client_socket.close() # close the connection
     # print(f"Connection to {client_address} closed")
   
-  def send_message(self, client_socket, data):
-    message = json.dumps(data).encode('utf-8') # encode the message into json
-    length = struct.pack('!I', len(message))   # pack the length into a big-endian, unsigned integer
-
-    client_socket.sendall(length + message) # send the length and message
-
-  def receive_message(self, client_socket):
-    length_bytes = client_socket.recv(4) # read 4 bytes for the length
-    length = struct.unpack('!I', length_bytes)[0] # unpack the length
-
-    message = client_socket.recv(length) # read the appropriate number of bytes
-
-    message = json.loads(message.decode('utf-8')) # decode the message to a string and convert it back to a Python object
-
-    return message # return the response
-
   def run(self):
     print("Server is running...")
 
