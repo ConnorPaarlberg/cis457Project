@@ -32,12 +32,9 @@ class Square:
     def square_attacked(self):
         if self.ship != Square_SHIP.NOTHING:
             self.state = Square_State.HIT
-            print("You hit a ship!")
-            return True
         else:
             self.state = Square_State.MISS
-            print("You missed!")
-            return False
+        return self.state
 
 class Board:
     def __init__(self):
@@ -45,7 +42,6 @@ class Board:
         # Initializing the state and squares of the board, 10 X 10 squares
         self.state = Board_State.ALIVE
         self.battlefield = [[Square() for x in range(10)] for y in range(10)]
-        # self.player_name = 
 
         self.number_of_ships_placed = 0
 
@@ -179,54 +175,46 @@ class Board:
             print_list.append("\n")
         print("".join(print_list))
 
-    def to_dict(self):
-        # Serialize the board's state
-        board_dict = {
-            "state": self.state.name,
-            "battlefield": [
-                [
-                    {
-                        "state": square.state.name,
-                        "ship": square.ship.name
-                    }
-                    for square in row
-                ]
-                for row in self.battlefield
-            ],
-            "carrier_hp": self.carrier_hp,
-            "battleship_hp": self.battleship_hp,
-            "cruiser_hp": self.cruiser_hp,
-            "submarine_hp": self.submarine_hp,
-            "destroyer_hp": self.destroyer_hp,
-            "number_of_ships_placed": self.number_of_ships_placed,
-        }
-        return board_dict
-    
-    def to_json(self):
-        return json.dumps(self.to_dict(), indent=2)
-
 class BattleShip:
     def __init__(self, server_ip, port_number):
         self.board = Board() # the game board
         # self.gui = Gui() # the gui for displaying the game
         self.client = Client(server_ip, port_number) # the client
+        self.player_number = self.client.receive_message(receiving_player_id=True) # receive the player number
 
         self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
         Square_SHIP.DESTROYER]
     
     def play(self):
         # self.gui.run()
+
+        # self.build_board() # build the game board
+        game_turn = 1 # player 1 always has first turn
+
+        # core game loop
+        while self.board.state == Board_State.ALIVE:
+            if self.player_number == game_turn:
+                coordinates = input("Enter a target to attack: ").split()
+                while len(coordinates) < 2:
+                    print('here')
+                    coordinates = input("Enter a target to attack: ").split()
+
+                print(coordinates)
+                self.client.send_message(coordinates)
+                game_turn = (game_turn % 2) + 1
+            else:
+                print("Waiting for player to attack")
+                response = self.client.receive_message() # receive the desired spot to hit
+                
+                x = response[0]
+                y = response[1]
+                print(x, y)
+
+                test = self.attack_board(self.board, response)
+                print(test)
+
+                game_turn = (game_turn % 2) + 1
         
-        self.build_board() # build the game board
-        initial_board = self.board.to_json() # convert the game board to a json
-
-        self.client.send_message(initial_board) # send the inital board state
-
-        player_number = self.client.receive_message("INT") # receive the player number
-        game_turn = self.client.receive_message("INT") # recieve the game turn
-
-        print(player_number)
-        print(game_turn)
 
         # while self.board.state == Board_State.ALIVE:
             
@@ -237,9 +225,6 @@ class BattleShip:
         #     self.attack_board(self.board)
         #     self.board.print_board_ships()
         #     self.board.print_board_state()
-            
-        #     # json_data = self.board.to_json()
-        #     # print(json_data)
 
         #     # # Print the size of the JSON data in bytes
         #     # print("Size of JSON data:", sys.getsizeof(json_data))
@@ -283,20 +268,23 @@ class BattleShip:
             while self.board.place_ship_on_board(location, ship, length, self.get_vertical_bool()) == False:
                 print("Invalid Placement, try again!")
                 location = self.get_coordinate_input("")
+        self.board.print_board_ships()
     
-    # def attack_board(target_board):
-    #     #TODO Check for valid location
-    #     coordinates = get_coordinate_input("Where should we attack?")
-    #     xaxis = coordinates[0]
-    #     yaxis = coordinates[1]
-    #     target_square = target_board.battlefield[xaxis][yaxis]
+    def attack_board(self, target_board, target_coordinates):
+        #TODO Check for valid location
+        xaxis = target_coordinates[0]
+        yaxis = target_coordinates[1]
 
-    #     if target_square.state == Square_State.NOT_TOUCHED:
-    #         target_square.square_attacked()
-    #         target_board.decrement_ship_health(target_square.ship)
+        target_square = target_board.battlefield[xaxis][yaxis]
 
-    #     else:
-    #         print("This square has already been revealed!")
+        if target_square.state == Square_State.NOT_TOUCHED:
+            target_square.square_attacked()
+            target_board.decrement_ship_health(target_square.ship)
+
+        else:
+            print("This square has already been revealed!")
+        
+        return target_square.state
 
 def main():
   # Get the server IP
