@@ -2,7 +2,6 @@ from enum import Enum
 from gui import Gui
 from client import Client
 import sys
-import json
 
 class Board_State(Enum):
     ALIVE = 1
@@ -179,36 +178,13 @@ class Board:
             print_list.append("\n")
         print("".join(print_list))
 
-    def to_dict(self):
-        # Serialize the board's state
-        board_dict = {
-            "state": self.state.name,
-            "battlefield": [
-                [
-                    {
-                        "state": square.state.name,
-                        "ship": square.ship.name
-                    }
-                    for square in row
-                ]
-                for row in self.battlefield
-            ],
-            "carrier_hp": self.carrier_hp,
-            "battleship_hp": self.battleship_hp,
-            "cruiser_hp": self.cruiser_hp,
-            "submarine_hp": self.submarine_hp,
-            "destroyer_hp": self.destroyer_hp,
-            "number_of_ships_placed": self.number_of_ships_placed,
-        }
-        return board_dict
-    
-    def to_json(self):
-        return json.dumps(self.to_dict(), indent=2)
-
 class BattleShip:
     def __init__(self, server_ip, port_number):
         self.board = Board() # the game board
+
         # self.gui = Gui() # the gui for displaying the game
+
+        # client to send the messages to server
         self.client = Client(server_ip, port_number) # the client
 
         self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
@@ -218,16 +194,14 @@ class BattleShip:
         # self.gui.run()
         
         self.build_board() # build the game board
-        initial_board = self.board.to_json() # convert the game board to a json
 
-        self.client.send_message(initial_board) # send the inital board state
 
-        player_number = self.client.receive_message("INT") # receive the player number
-        game_turn = self.client.receive_message("INT") # recieve the game turn
+        # self.client.receive_message()
 
-        print(player_number)
-        print(game_turn)
+        # print(player_number)
+        # print(game_turn)
 
+        ## game loop - core logic
         # while self.board.state == Board_State.ALIVE:
             
         # opponent_board = self.client.receive_message("JSON")
@@ -284,9 +258,9 @@ class BattleShip:
                 print("Invalid Placement, try again!")
                 location = self.get_coordinate_input("")
     
-    # def attack_board(target_board):
+    # def attack_board(self, target_board):
     #     #TODO Check for valid location
-    #     coordinates = get_coordinate_input("Where should we attack?")
+    #     coordinates = self.get_coordinate_input("Where should we attack?")
     #     xaxis = coordinates[0]
     #     yaxis = coordinates[1]
     #     target_square = target_board.battlefield[xaxis][yaxis]

@@ -4,9 +4,6 @@ import select
 import struct
 import threading
 
-from Battleship.Game import *
-from Battleship.Battleship import *
-
 class Client:
   def __init__(self, server_ip, port_number):
     self.server_ip = server_ip # the passed in IP address of the server
