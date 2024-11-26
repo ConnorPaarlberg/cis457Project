@@ -5,7 +5,6 @@ import threading
 
 class Server:
   player_id = 1
-  battleship_turn = 1
   def __init__(self, port_number, num_clients):
     self.server_ip = '0.0.0.0'     # accept connections on all network interfaces
     self.port_number = port_number # the port number to use
@@ -29,31 +28,26 @@ class Server:
   def handle_client(self, client_socket, client_address):
     print(f"Connected to {client_address}")
 
+    data = struct.pack('!i', Server.player_id) # pack the player id
+    client_socket.send(data) # send the player id
+    Server.player_id += 1 # increment the player ID
+
     while not self.quit_event.is_set():
       # Receive the message
-      message = client_socket.recv(4096).decode()
-      print('Received message:', message)
+      message = client_socket.recv(8)
 
-      # send a response
-      data = struct.pack('!i', Server.player_id)
-      client_socket.send(data)
-      Server.player_id += 1 # increment the player ID
-
-      data = struct.pack('!i', Server.battleship_turn)
-      client_socket.send(data)
-      
-      # # send the message to the other client
-      # for connected_socket in self.clients:
-      #   if client_socket != connected_socket:
-      #     connected_socket.send(message.encode())
+      # send the message to the other client
+      for connected_socket in self.clients:
+        if client_socket != connected_socket:
+          connected_socket.send(message)
 
       # if message == 'exit':
       #   break
 
-    self.quit_event.set() # signal to quit
-    self.clients.remove(client_socket)
-    client_socket.close() # close the connection
-    print(f"Connection to {client_address} closed")
+    # self.quit_event.set() # signal to quit
+    # self.clients.remove(client_socket)
+    # client_socket.close() # close the connection
+    # print(f"Connection to {client_address} closed")
   
   def run(self):
     print("Server is running...")
