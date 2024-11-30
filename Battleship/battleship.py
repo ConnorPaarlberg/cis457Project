@@ -37,6 +37,8 @@ class Square:
         return self.state
 
 class Board:
+    SHIPS = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
+        Square_SHIP.DESTROYER]
     def __init__(self):
 
         # Initializing the state and squares of the board, 10 X 10 squares
@@ -180,27 +182,24 @@ class BattleShip:
         self.board = Board() # the game board
         # self.gui = Gui() # the gui for displaying the game
         self.client = Client(server_ip, port_number) # the client
-        self.player_number = self.client.receive_message(receiving_player_id=True) # receive the player number
-
-        self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
-        Square_SHIP.DESTROYER]
+        self.player_number = self.client.receive_message() # receive the player id
     
     def play(self):
         # self.gui.run()
 
-        # self.build_board() # build the game board
+        self.build_board() # build the game board
         game_turn = 1 # player 1 always has first turn
 
         # core game loop
         while self.board.state == Board_State.ALIVE:
             if self.player_number == game_turn:
-                coordinates = input("Enter a target to attack: ").split()
-                while len(coordinates) < 2:
-                    print('here')
-                    coordinates = input("Enter a target to attack: ").split()
+                coordinates = self.get_coordinate_input('Enter a location to attack: ')
 
-                print(coordinates)
                 self.client.send_message(coordinates)
+
+                attack_response = self.client.receive_message() # receive the result of the attack
+                print(attack_response)
+
                 game_turn = (game_turn % 2) + 1
             else:
                 print("Waiting for player to attack")
@@ -210,24 +209,12 @@ class BattleShip:
                 y = response[1]
                 print(x, y)
 
-                test = self.attack_board(self.board, response)
-                print(test)
+                attack = self.attack_board(self.board, response) # attack the board
+                print(attack) # print out the attack
+
+                self.client.send_message(attack)
 
                 game_turn = (game_turn % 2) + 1
-        
-
-        # while self.board.state == Board_State.ALIVE:
-            
-        # opponent_board = self.client.receive_message("JSON")
-        # print(opponent_board)
-
-        # while self.board.state == Board_State.ALIVE: 
-        #     self.attack_board(self.board)
-        #     self.board.print_board_ships()
-        #     self.board.print_board_state()
-
-        #     # # Print the size of the JSON data in bytes
-        #     # print("Size of JSON data:", sys.getsizeof(json_data))
 
     def get_coordinate_input(self, message):
         if len(message) > 0:
@@ -236,7 +223,7 @@ class BattleShip:
         coordinates = input().split(' ')
         if len(coordinates) != 2:
             print("Invalid Input")
-            self.get_coordinate_input(message)
+            return self.get_coordinate_input(message)
 
         try:
             xaxis = int(coordinates[0])
@@ -247,7 +234,7 @@ class BattleShip:
         else:
             if(xaxis > 9 or xaxis < 0 or yaxis > 9 or yaxis < 0):
                 print("Coordinates not on board")
-                self.get_coordinate_input(message)
+                return self.get_coordinate_input(message)
             else:
                 return [xaxis,yaxis]
         
@@ -259,7 +246,7 @@ class BattleShip:
         else: return False
 
     def build_board(self):
-        for ship in self.ships:
+        for ship in Board.SHIPS:
             self.board.print_board_ships()
             message = f"Where should the {ship.name.lower()} go?"
             location = self.get_coordinate_input(message)
@@ -284,7 +271,14 @@ class BattleShip:
         else:
             print("This square has already been revealed!")
         
-        return target_square.state
+        attack_info = {
+            "attack_status": target_square.state.name,
+            # "ship_destroyed": destroyed_ship.name if destroyed_ship else None,
+            # "destroyed_ship_coords": destroyed_ship_coords if destroyed_ship_coords else None,
+        }
+        return attack_info
+
+        # return target_square.state
 
 def main():
   # Get the server IP

@@ -1,8 +1,7 @@
-import sys
 import socket
-import select
 import struct
 import threading
+import json
 
 class Client:
   def __init__(self, server_ip, port_number):
@@ -17,40 +16,18 @@ class Client:
     # event for signaling threads to quit
     self.quit_event = threading.Event() 
   
-  def send_message(self, message):
-    message = struct.pack('!ii', int(message[0]), int(message[1]))
-    self.socket.send(message) # send the player id and turn to the client
-  
-  def receive_message(self, receiving_player_id=False):
-    if receiving_player_id:
-      response = self.socket.recv(4)
-      response = struct.unpack('!i', response)[0]
-    else:
-      response = self.socket.recv(8)
-      response = struct.unpack('!ii', response)
-    return response
+  def send_message(self, data):
+    message = json.dumps(data).encode('utf-8') # encode the message into json
+    length = struct.pack('!I', len(message))   # pack the length into a big-endian, unsigned integer
 
-  def run(self):
-    sender_thread = threading.Thread(target=self.send_messages, daemon=False) # create the sender thread
+    self.socket.sendall(length + message) # send the length and message
 
-    receiver_thread = threading.Thread(target=self.receive_messages, daemon=False) # create the receiver thread
+  def receive_message(self):
+    length_bytes = self.socket.recv(4) # read 4 bytes for the length
+    length = struct.unpack('!I', length_bytes)[0] # unpack the length
 
-    sender_thread.start()
-    receiver_thread.start()
+    message = self.socket.recv(length) # read the appropriate number of bytes
 
-    sender_thread.join()
-    receiver_thread.join()
+    message = json.loads(message.decode('utf-8')) # decode the message to a string and convert it back to a Python object
 
-    self.socket.close() # close the connection
-
-    
-def main():
-  # Get the server IP
-  server_ip = sys.argv[1]
-  port_number = int(sys.argv[2])
-
-  client = Client(server_ip, port_number)
-  client.run()
-
-if __name__ == '__main__':
-  main()
+    return message # return the response
