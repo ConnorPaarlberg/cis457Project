@@ -1,6 +1,5 @@
 import socket
 import struct
-import threading
 import json
 
 class Client:
@@ -8,13 +7,8 @@ class Client:
     self.server_ip = server_ip # the passed in IP address of the server
     self.port_number = port_number # the port number to connect to
 
-    # create a socket
-    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # connect to the server
-    self.socket.connect((server_ip, port_number))
-
-    # event for signaling threads to quit
-    self.quit_event = threading.Event() 
+    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create a socket
+    self.socket.connect((server_ip, port_number))  # connect to the server
   
   def send_message(self, data):
     message = json.dumps(data).encode('utf-8') # encode the message into json
@@ -30,4 +24,4 @@ class Client:
 
     message = json.loads(message.decode('utf-8')) # decode the message to a string and convert it back to a Python object
 
-    return message # return the response
+    return message # return the received message
