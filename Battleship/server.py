@@ -5,26 +5,18 @@ import threading
 import json
 
 class Server:
-  player_id = 1
+  player_id = 1 # the id of the connecting player (increments each time a client connects)
   def __init__(self, port_number, num_clients):
     self.server_ip = '0.0.0.0'     # accept connections on all network interfaces
     self.port_number = port_number # the port number to use
     self.num_clients = num_clients # the desired number of clients to accept
 
-    # create a socket
-    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create a socket
+    self.socket.bind((self.server_ip, self.port_number)) # bind the socket to the port
+    self.socket.listen(5) # listen for incoming connections
 
-    # Bind the socket to the port
-    self.socket.bind((self.server_ip, self.port_number))
-
-    # Listen for incoming connections
-    self.socket.listen(5)
-
-    # a list of the client sockets
-    self.clients = []
-
-    # event for signaling threads to quit
-    self.quit_event = threading.Event() 
+    self.clients = [] # a list of the client sockets
+    self.quit_event = threading.Event() # event for signaling threads to quit
 
   def handle_client(self, client_socket, client_address):
     print(f"Connected to {client_address}")
@@ -33,10 +25,9 @@ class Server:
     Server.player_id += 1 # increment the player ID
 
     while not self.quit_event.is_set():
-      # receive the message
-      message = self.receive_message(client_socket)
+      message = self.receive_message(client_socket) # receive the message
 
-      # send the message to the other client
+      # send the message to the other client (only 2 clients supported currently)
       for connected_socket in self.clients:
         if client_socket != connected_socket:
           self.send_message(connected_socket, message)
@@ -68,32 +59,30 @@ class Server:
   def run(self):
     print("Server is running...")
 
-    threads = []
+    threads = [] # for joining the threads later
     while len(self.clients) < self.num_clients:
+      client_socket, client_address = self.socket.accept() # accept a connection
 
-      # Accept a connection
-      client_socket, client_address = self.socket.accept()
+      self.clients.append(client_socket) # add this client to the list
 
-      self.clients.append(client_socket)
-
+      # create a new thread
       thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address), daemon=False)
 
-      threads.append(thread)
-
+      threads.append(thread) # add this thread to the list
       thread.start() # start the thread
-    
+
     for thread in threads:
-      thread.join()
+      thread.join() # join each thread (good practice)
 
 def main():
-  if len(sys.argv) < 3:
-    print("Error: must specify server port number & number of clients")
+  if len(sys.argv) < 2:
+    print("Error: must specify desired port number")
     sys.exit(1)
 
   port_number = int(sys.argv[1]) # cast port number to an int
-  num_clients = int(sys.argv[2]) # cast the number of clients to an int
-  server = Server(port_number, num_clients)   # create the server
-  server.run()                   # run the server
+  num_clients = 2 # only want 2 clients for our battleship game
+  server = Server(port_number, num_clients) # create the server
+  server.run() # run the server
 
 if __name__ == '__main__':
   main()
