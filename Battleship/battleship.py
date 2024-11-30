@@ -178,8 +178,8 @@ class Board:
 class BattleShip:
     def __init__(self, server_ip, port_number):
         self.board = Board() # the game board
-        # self.gui = Gui() # the gui for displaying the game
-        self.client = Client(server_ip, port_number) # the client
+        self.opponent_board = Board()  # to track the opponent board state
+        self.client = Client(server_ip, port_number)  # the client
         self.player_number = self.client.receive_message(receiving_player_id=True) # receive the player number
 
         self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
@@ -188,36 +188,66 @@ class BattleShip:
     def play(self):
         # self.gui.run()
 
-        self.build_board() # build the game board
+        self.build_board(self.board) # build the game board
         game_turn = 1 # player 1 always has first turn
 
         # core game loop
         while self.board.state == Board_State.ALIVE:
             if self.player_number == game_turn:
-                coordinates = input("Enter a target to attack: ").split()
-                while len(coordinates) < 2:
-                    coordinates = input("Invalid input. Enter a target to attack: ").split()
+                coordinates = input("Enter a coordinate to attack (row col): ").split()
+                while len(coordinates) != 2 or not all(coord.isdigit() for coord in coordinates):
+                    coordinates = input("Invalid input. Enter a coordinate to attack (row col): ").split()
 
-                # TODO: needs to be altered so that the json data is reflecting the results 
-                # of the opponents board, not their own board. Currently, it shows accurate
-                # HIT/MISS and battleship for own board
                 coordinates = [int(coord) for coord in coordinates]
+                # Send the attack to the opponent
                 json_message = {
                     "player_id": self.player_number,
                     "coordinates": coordinates,
-                    "square state": str(self.attack_board(self.board, coordinates)),
-                    "square ship": str(self.board.battlefield[coordinates[0]][coordinates[1]].ship),
-                    "board state": str(self.board.state)
                 }
-                print("Your Move Information: \n", json_message)
                 self.client.send_message(json_message)
-                game_turn = (game_turn % 2) + 1
-            else:
-                print("Waiting for player to attack")
+
+                # Wait for response from opponent
                 response = self.client.receive_message()
-                print("Opponent Move Information: \n", response)
+                # tells attacker if they missed or hit
+                attack_result = response["square_state"]
+                # tells attacker what ship (if any) they hit
+                attacked_ship = response["square_ship"]
+                # Update opponents board state based on the response
+                self.update_opponent_board(coordinates, attack_result, attacked_ship)
+                print("Result of your attack:\n", response)
 
                 game_turn = (game_turn % 2) + 1
+            else:
+                # Waiting for opponents attack
+                print("Waiting for opponent's attack...")
+                response = self.client.receive_message()
+
+                # Process opponents move
+                attack_coordinates = response["coordinates"]
+                attack_result = self.attack_board(self.board, attack_coordinates)
+                attacked_ship = self.board.battlefield[attack_coordinates[0]][attack_coordinates[1]].ship
+
+                # message to send back to opponent
+                json_message = {
+                    "player_id": self.player_number,
+                    "coordinates": attack_coordinates,
+                    "square_state": str(attack_result),
+                    "square_ship": str(attacked_ship),
+                    "board_state": str(self.board.state),
+                }
+                self.client.send_message(json_message)
+
+                print("Opponent attacked your board at:",attack_coordinates)
+                print("Attack result:", attack_result)
+                print("Ship hit:", attacked_ship)
+                game_turn = (game_turn % 2) + 1
+
+    # Update the opponent's board state based on the attack result
+    def update_opponent_board(self, coordinates, attack_result, ship_hit):
+        row, col = coordinates
+        square = self.opponent_board.battlefield[row][col]
+        square.state = attack_result
+        square.ship = ship_hit if ship_hit else Square_SHIP.NONE
 
     def get_coordinate_input(self, message):
         if len(message) > 0:
@@ -231,6 +261,7 @@ class BattleShip:
         try:
             xaxis = int(coordinates[0])
             yaxis = int(coordinates[1])
+        # TODO: repromt user if invalid input
         except Exception:
             print("Invalid Input")
 
@@ -240,25 +271,61 @@ class BattleShip:
                 self.get_coordinate_input(message)
             else:
                 return [xaxis,yaxis]
-        
+
     def get_vertical_bool(self):
-        print("Are you placing it vertically? (y/n)")
-        vertical_bool = input()
+        vertical_bool = input("Are you placing it vertically? (y/n): ").lower()
+        while vertical_bool not in ['y', 'n']:
+            vertical_bool = input("Invalid input. Are you placing it vertically? (y/n): ").lower()
         if vertical_bool == 'y':
             return True
-        else: return False
+        else:
+            return False
+    
+    # Convert the board's state into a JSON-compatible dictionary
+    def serialize_board(self, board):
+        serialized = []
+        for row in board.battlefield:
+            serialized_row = []
+            for square in row:
+                serialized_row.append({
+                    "state": square.state.name,
+                    "ship": square.ship.name
+                })
+            serialized.append(serialized_row)
+        return json.dumps(serialized)
+    
+    # Reconstruct a Board object from a serialized JSON string
+    def deserialize_board(self, serialized_board):
+        data = json.loads(serialized_board)
+        board = Board()
+        for i, row in enumerate(data):
+            for j, square_data in enumerate(row):
+                square = Square()
+                square.state = Square_State[square_data["state"]]
+                square.ship = Square_SHIP[square_data["ship"]]
+                board.battlefield[i][j] = square
+        return board
 
-    def build_board(self):
+    def build_board(self, board):
         for ship in self.ships:
-            self.board.print_board_ships()
-            message = f"Where should the {ship.name.lower()} go?"
-            location = self.get_coordinate_input(message)
-            length = ship.value
+                board.print_board_ships()
+                message = f"Where should the {ship.name.lower()} go?"
+                location = self.get_coordinate_input(message)
+                length = ship.value
+                while self.board.place_ship_on_board(location, ship, length, self.get_vertical_bool()) == False:
+                    print("Invalid Placement, try again!")
+                    location = self.get_coordinate_input("")
+        board.print_board_ships()
 
-            while self.board.place_ship_on_board(location, ship, length, self.get_vertical_bool()) == False:
-                print("Invalid Placement, try again!")
-                location = self.get_coordinate_input("")
-        self.board.print_board_ships()
+        # Send the board to the opponent
+        serialized_board = self.serialize_board(board)
+        self.client.send_message(serialized_board)
+        print("Board setup complete. Waiting for opponent's board...")
+
+        # Receive the opponent's board
+        opponent_serialized_board = self.client.receive_message()
+        self.opponent_board = self.deserialize_board(opponent_serialized_board)
+        print("Opponent's board received.")
     
     def attack_board(self, target_board, target_coordinates):
         #TODO Check for valid location
