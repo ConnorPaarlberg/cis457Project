@@ -188,7 +188,7 @@ class BattleShip:
     def play(self):
         # self.gui.run()
 
-        # self.build_board() # build the game board
+        self.build_board() # build the game board
         game_turn = 1 # player 1 always has first turn
 
         # core game loop
@@ -196,38 +196,28 @@ class BattleShip:
             if self.player_number == game_turn:
                 coordinates = input("Enter a target to attack: ").split()
                 while len(coordinates) < 2:
-                    print('here')
-                    coordinates = input("Enter a target to attack: ").split()
+                    coordinates = input("Invalid input. Enter a target to attack: ").split()
 
-                print(coordinates)
-                self.client.send_message(coordinates)
+                # TODO: needs to be altered so that the json data is reflecting the results 
+                # of the opponents board, not their own board. Currently, it shows accurate
+                # HIT/MISS and battleship for own board
+                coordinates = [int(coord) for coord in coordinates]
+                json_message = {
+                    "player_id": self.player_number,
+                    "coordinates": coordinates,
+                    "square state": str(self.attack_board(self.board, coordinates)),
+                    "square ship": str(self.board.battlefield[coordinates[0]][coordinates[1]].ship),
+                    "board state": str(self.board.state)
+                }
+                print("Your Move Information: \n", json_message)
+                self.client.send_message(json_message)
                 game_turn = (game_turn % 2) + 1
             else:
                 print("Waiting for player to attack")
-                response = self.client.receive_message() # receive the desired spot to hit
-                
-                x = response[0]
-                y = response[1]
-                print(x, y)
-
-                test = self.attack_board(self.board, response)
-                print(test)
+                response = self.client.receive_message()
+                print("Opponent Move Information: \n", response)
 
                 game_turn = (game_turn % 2) + 1
-        
-
-        # while self.board.state == Board_State.ALIVE:
-            
-        # opponent_board = self.client.receive_message("JSON")
-        # print(opponent_board)
-
-        # while self.board.state == Board_State.ALIVE: 
-        #     self.attack_board(self.board)
-        #     self.board.print_board_ships()
-        #     self.board.print_board_state()
-
-        #     # # Print the size of the JSON data in bytes
-        #     # print("Size of JSON data:", sys.getsizeof(json_data))
 
     def get_coordinate_input(self, message):
         if len(message) > 0:
