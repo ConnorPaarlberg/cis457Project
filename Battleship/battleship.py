@@ -48,37 +48,18 @@ class Square:
     def square_attacked(self):
         if self.ship != None:
             self.state = Square_State.HIT
-<<<<<<< HEAD
-            self.ship.hit()
-=======
->>>>>>> bb2d71a (basic implementation of exchanging coordinates)
         else:
             self.state = Square_State.MISS
         return self.state
 
 class Board:
-
-    Ship_length_dict = {
-        'carrier': 5,
-        'battleship': 4,
-        'cruiser': 3,
-        'submarine': 3,
-        'destroyer': 2
-    }
+    SHIPS = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
+        Square_SHIP.DESTROYER]
     def __init__(self):
 
         # Initializing the state and squares of the board, 10 X 10 squares
         self.state = Board_State.ALIVE
         self.battlefield = [[Square() for x in range(10)] for y in range(10)]
-<<<<<<< HEAD
-
-        self.SHIPS = [Ship('carrier', 5),
-                    Ship('battleship', 4),
-                    Ship('cruiser', 3),
-                    Ship('submarine', 3),
-                    Ship('destroyer', 2)]
-=======
->>>>>>> bb2d71a (basic implementation of exchanging coordinates)
 
         self.number_of_ships_placed = 0
 
@@ -193,30 +174,29 @@ class BattleShip:
         self.opponent_board = Board() # opponent board with less info
         # self.gui = Gui() # the gui for displaying the game
         self.client = Client(server_ip, port_number) # the client
-<<<<<<< HEAD
         self.player_number = self.client.receive_message() # receive the player id
-=======
         self.player_number = self.client.receive_message(receiving_player_id=True) # receive the player number
 
         self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
         Square_SHIP.DESTROYER]
+        self.player_number = self.client.receive_message() # receive the player id
     
     def play(self):
         # self.gui.run()
 
-        # self.build_board() # build the game board
+        self.build_board() # build the game board
         game_turn = 1 # player 1 always has first turn
 
         # core game loop
         while self.board.state == Board_State.ALIVE:
             if self.player_number == game_turn:
-                coordinates = input("Enter a target to attack: ").split()
-                while len(coordinates) < 2:
-                    print('here')
-                    coordinates = input("Enter a target to attack: ").split()
+                coordinates = self.get_coordinate_input('Enter a location to attack: ')
 
-                print(coordinates)
                 self.client.send_message(coordinates)
+
+                attack_response = self.client.receive_message() # receive the result of the attack
+                print(attack_response)
+
                 game_turn = (game_turn % 2) + 1
             else:
                 print("Waiting for player to attack")
@@ -226,8 +206,10 @@ class BattleShip:
                 y = response[1]
                 print(x, y)
 
-                test = self.attack_board(self.board, response)
-                print(test)
+                attack = self.attack_board(self.board, response) # attack the board
+                print(attack) # print out the attack
+
+                self.client.send_message(attack)
 
                 game_turn = (game_turn % 2) + 1
         
@@ -244,7 +226,6 @@ class BattleShip:
 
         #     # # Print the size of the JSON data in bytes
         #     # print("Size of JSON data:", sys.getsizeof(json_data))
->>>>>>> bb2d71a (basic implementation of exchanging coordinates)
 
     def get_coordinate_input(self, message):
         if len(message) > 0:
@@ -276,7 +257,7 @@ class BattleShip:
         else: return False
 
     def build_board(self):
-        for ship in self.board.SHIPS:
+        for ship in Board.SHIPS:
             self.board.print_board_ships()
             message = input("Where should the {ship.name.lower()} go?").split()
             location = self.get_coordinate_input(message)
@@ -287,17 +268,8 @@ class BattleShip:
                 location = self.get_coordinate_input("")
         self.board.print_board_ships()
     
-<<<<<<< HEAD
-    """
-    The purpose of this function is to attack their own board, then tell the other user what happened.
-    
-    This happens when a coordinate is sent by the other user during the other person's turn
-    """
-    def attack_board(self, target_board, target_coordinates):
-=======
     def attack_board(self, target_board, target_coordinates):
         #TODO Check for valid location
->>>>>>> bb2d71a (basic implementation of exchanging coordinates)
         xaxis = target_coordinates[0]
         yaxis = target_coordinates[1]
 
@@ -305,17 +277,11 @@ class BattleShip:
 
         if target_square.state == Square_State.NOT_TOUCHED:
             target_square.square_attacked()
-<<<<<<< HEAD
-            if self.board.check_dead_board() == True:
-                self.board.state = Board_State.DEAD
-=======
             target_board.decrement_ship_health(target_square.ship)
->>>>>>> bb2d71a (basic implementation of exchanging coordinates)
 
         else:
             print("This square has already been revealed!")
-        
-<<<<<<< HEAD
+
         # the json that will be sent containing all relevant information
         attack_info = {
             #TODO: replace this with board-state of copy board
@@ -433,9 +399,15 @@ class BattleShip:
                 game_turn = (game_turn % 2) + 1 # switch roles
         
         self.client.close_socket() # close the socket after the game is over
-=======
         return target_square.state
->>>>>>> bb2d71a (basic implementation of exchanging coordinates)
+        attack_info = {
+            "attack_status": target_square.state.name,
+            # "ship_destroyed": destroyed_ship.name if destroyed_ship else None,
+            # "destroyed_ship_coords": destroyed_ship_coords if destroyed_ship_coords else None,
+        }
+        return attack_info
+
+        # return target_square.state
 
 def main():
   if len(sys.argv) < 3:
