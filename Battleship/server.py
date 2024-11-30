@@ -6,7 +6,7 @@ import json
 import json
 
 class Server:
-  player_id = 1
+  player_id = 1 # the id of the connecting player (increments each time a client connects)
   def __init__(self, port_number, num_clients):
     self.server_ip = '0.0.0.0'     # accept connections on all network interfaces
     self.port_number = port_number # the port number to use
@@ -26,10 +26,9 @@ class Server:
     Server.player_id += 1 # increment the player ID
 
     while not self.quit_event.is_set():
-      # receive the message
-      message = self.receive_message(client_socket)
+      message = self.receive_message(client_socket) # receive the message
 
-      # send the message to the other client
+      # send the message to the other client (only 2 clients supported currently)
       for connected_socket in self.clients:
         if client_socket != connected_socket:
           self.send_message(connected_socket, message)
@@ -77,8 +76,8 @@ class Server:
       thread.join() # join each thread (good practice)
 
 def main():
-  if len(sys.argv) < 3:
-    print("Error: must specify server port number & number of clients")
+  if len(sys.argv) < 2:
+    print("Error: must specify desired port number")
     sys.exit(1)
 
   port_number = int(sys.argv[1]) # cast port number to an int

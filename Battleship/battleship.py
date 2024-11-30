@@ -4,7 +4,6 @@ from enum import Enum
 from gui import Gui
 from client import Client
 import sys
-import json
 
 class Board_State(Enum):
     ALIVE = 1
@@ -15,32 +14,54 @@ class Square_State(Enum):
     MISS = 4
     HIT = 5
 
-class Square_SHIP(Enum):
-    NOTHING = 0
-    CARRIER = 5
-    BATTLESHIP = 4
-    CRUISER = 3
-    SUBMARINE = 3
-    DESTROYER = 2
+class Ship:
+    def __init__(self, name, length):
+        self.name = name
+        self.length = length
+        self.health = length
+        
+        self.start_coords = None
+        self.end_coords = None
+    
+    def get_start_coords(self):
+        return self.start_coords
+
+    def get_end_coords(self):
+        return self.end_coords
+
+    def set_ship_coords(self, start_coords, end_coords):
+        self.start_coords = start_coords
+        self.end_coords = end_coords
+
+    def hit(self):
+        self.health -= 1
+
+    def is_sunk(self):
+        return self.health == 0
 
 class Square:
     def __init__(self):
         self.state = Square_State.NOT_TOUCHED
-        self.ship = Square_SHIP.NOTHING
+        self.ship = None
 
-    def add_ship_to_square(self,Square_SHIP):
-        self.ship = Square_SHIP
+    def add_ship_to_square(self, ship):
+        self.ship = ship
     
     def square_attacked(self):
-        if self.ship != Square_SHIP.NOTHING:
+        if self.ship != None:
             self.state = Square_State.HIT
+            self.ship.hit()
         else:
             self.state = Square_State.MISS
         return self.state
 
 class Board:
-    SHIPS = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
-        Square_SHIP.DESTROYER]
+    # the list of ships on the board
+    SHIPS = [Ship('carrier', 5),
+                    Ship('battleship', 4),
+                    Ship('cruiser', 3),
+                    Ship('submarine', 3),
+                    Ship('destroyer', 2)]
     def __init__(self):
 
         # Initializing the state and squares of the board, 10 X 10 squares
@@ -49,35 +70,11 @@ class Board:
 
         self.number_of_ships_placed = 0
 
-        # Health points for each of the ships on the board
-        # If 0, they're dead
-        self.carrier_hp = 5
-        self.battleship_hp = 4
-        self.cruiser_hp = 3
-        self.submarine_hp = 3
-        self.destroyer_hp = 2
-
     def check_dead_board(self):
-        sum = self.carrier_hp + self.battleship_hp + self.cruiser_hp + self.submarine_hp + self.destroyer_hp
-        if sum == 0:
+        total_ship_health = sum(ship.health for ship in Board.SHIPS)
+        if total_ship_health == 0:
             return True
         return False
-    
-    def decrement_ship_health(self, hurt_ship):
-        match hurt_ship:
-            case Square_SHIP.CARRIER:
-                self.carrier_hp-=1
-            case Square_SHIP.BATTLESHIP:
-                self.battleship_hp-=1
-            case Square_SHIP.CRUISER:
-                self.cruiser_hp -=1
-            case Square_SHIP.SUBMARINE:
-                self.submarine_hp -=1
-            case Square_SHIP.DESTROYER:
-                self.destroyer_hp -=1
-        if self.check_dead_board() == True:
-            print("This board is now dead")
-            self.state = Board_State.DEAD
     
     # Location is a tuple for the x and y axis [x,y]
     # SQUARE_SHIP is what ship we're placing
@@ -103,18 +100,25 @@ class Board:
         if not Invalid_Input:
             if vertical_placement_bool:
                 for i in range(ship_length):
-                    if self.battlefield[row+i][column].ship != Square_SHIP.NOTHING:
+                    if self.battlefield[row+i][column].ship != None:
                         ship_available = False
                 if ship_available:
+                    start_coords = (row, column)
+                    end_coords = (row + ship_length - 1, column)
+                    ship.set_ship_coords(start_coords, end_coords)
+
                     for i in range(ship_length):
                         self.battlefield[row+i][column].ship = ship
                         self.number_of_ships_placed += 1 
 
             else:
                 for i in range(ship_length):
-                    if self.battlefield[row][column+i].ship != Square_SHIP.NOTHING:
+                    if self.battlefield[row][column+i].ship != None:
                         ship_available = False
                 if ship_available:
+                    start_coords = (row, column)
+                    end_coords = (row, column + ship_length - 1)
+                    ship.set_ship_coords(start_coords, end_coords)
                     for i in range(ship_length):
                         self.battlefield[row][column+i].ship = ship
                         self.number_of_ships_placed += 1
@@ -146,35 +150,24 @@ class Board:
     def print_board_ships(self):
         print_list = []
         print_column_list = ["  "]
-        row_counter = 0
         column_counter = 0
 
         for i in range(10):
             print_column_list.append(str(column_counter))
             print_column_list.append("  ")
-            column_counter+=1
+            column_counter += 1
         print("".join(print_column_list))
 
-
-        for i in range (10):
-            print_list.append(str(row_counter))
-            for j in range (10):
+        for i in range(10):
+            print_list.append(str(i))
+            for j in range(10):
                 print_list.append("|")
                 current_square_state = self.battlefield[i][j].ship
-                if current_square_state == Square_SHIP.NOTHING:
+                if current_square_state == None:
                     print_list.append("--")
-                elif current_square_state == Square_SHIP.CARRIER:
-                    print_list.append("CA")
-                elif current_square_state == Square_SHIP.BATTLESHIP:
-                    print_list.append("BA")
-
-                elif current_square_state == Square_SHIP.CRUISER:
-                    print_list.append("CR")
-                elif current_square_state == Square_SHIP.SUBMARINE:
-                    print_list.append("SU")
                 else:
-                    print_list.append("DE")
-            row_counter +=1
+                    # use the first two letters of the ship name
+                    print_list.append(current_square_state.name[:2].upper())
             print_list.append("|")
             print_list.append("\n")
         print("".join(print_list))
@@ -185,42 +178,6 @@ class BattleShip:
         # self.gui = Gui() # the gui for displaying the game
         self.client = Client(server_ip, port_number) # the client
         self.player_number = self.client.receive_message() # receive the player id
-    
-    def play(self):
-        # self.gui.run()
-
-        self.build_board() # build the game board
-        game_turn = 1 # player 1 always has first turn
-
-        # core game loop
-        while self.board.state == Board_State.ALIVE:
-            if self.player_number == game_turn:
-                coordinates = self.get_coordinate_input('Enter a location to attack: ')
-
-                while not self.is_valid_attack_coordinates(coordinates):
-                    print('Invalid coordinates')
-                    coordinates = self.get_coordinate_input('Enter a location to attack: ')
-
-                self.client.send_message(coordinates)
-
-                attack_response = self.client.receive_message() # receive the result of the attack
-                print(attack_response)
-
-                game_turn = (game_turn % 2) + 1
-            else:
-                print("Waiting for player to attack")
-                response = self.client.receive_message() # receive the desired spot to hit
-                
-                x = response[0]
-                y = response[1]
-                print(x, y)
-
-                attack = self.attack_board(self.board, response) # attack the board
-                print(attack) # print out the attack
-
-                self.client.send_message(attack)
-
-                game_turn = (game_turn % 2) + 1
 
     def get_coordinate_input(self, message):
         if len(message) > 0:
@@ -256,7 +213,7 @@ class BattleShip:
             self.board.print_board_ships()
             message = f"Where should the {ship.name.lower()} go?"
             location = self.get_coordinate_input(message)
-            length = ship.value
+            length = ship.length
 
             while self.board.place_ship_on_board(location, ship, length, self.get_vertical_bool()) == False:
                 print("Invalid Placement, try again!")
@@ -264,7 +221,6 @@ class BattleShip:
         self.board.print_board_ships()
     
     def attack_board(self, target_board, target_coordinates):
-        #TODO Check for valid location
         xaxis = target_coordinates[0]
         yaxis = target_coordinates[1]
 
@@ -272,19 +228,26 @@ class BattleShip:
 
         if target_square.state == Square_State.NOT_TOUCHED:
             target_square.square_attacked()
-            target_board.decrement_ship_health(target_square.ship)
+            if self.board.check_dead_board() == True:
+                print("The board is now dead")
+                self.state = Board_State.DEAD
 
         else:
             print("This square has already been revealed!")
         
+        # the json that will be sent containing all relevant information
         attack_info = {
-            "attack_status": target_square.state.name,
-            # "ship_destroyed": destroyed_ship.name if destroyed_ship else None,
-            # "destroyed_ship_coords": destroyed_ship_coords if destroyed_ship_coords else None,
+            #TODO: replace this with board-state of copy board
+            "board_state": self.board.state.name, # add the board state to the attack info
+            "attack_status": target_square.state.name, # the status of the attack (hit/miss)
+            "ship_info": {
+                "name": target_square.ship.name,
+                "start_coords": target_square.ship.get_start_coords(),
+                "end_coords": target_square.ship.get_end_coords(),
+                "is_sunk": target_square.ship.is_sunk()
+            } if target_square.ship else None, # only ship info if there is actually a ship on that square (could be none)
         }
         return attack_info
-
-        # return target_square.state
     
     def is_valid_attack_coordinates(self, coordinates):
         xaxis = coordinates[0]
@@ -294,17 +257,54 @@ class BattleShip:
         if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
             return False
 
+        #TODO: change this to the copy board so we check if it is a valid attack on their board
         # check if the square has already been attacked
         target_square = self.board.battlefield[xaxis][yaxis]
         if target_square.state != Square_State.NOT_TOUCHED:
             return False
 
         return True
+    
+    def play(self):
+        # self.gui.run()
+
+        self.build_board() # build the game board
+        game_turn = 1 # player 1 always has first turn
+
+        # core game loop
+        while self.board.state == Board_State.ALIVE:
+            if self.player_number == game_turn:
+                # loop until a valid coordinate has been entered on the enemy's board
+                coordinates = self.get_coordinate_input('Enter a location to attack: ')
+                while not self.is_valid_attack_coordinates(coordinates):
+                    print('Invalid coordinates')
+                    coordinates = self.get_coordinate_input('Enter a location to attack: ')
+
+                self.client.send_message(coordinates) # send the coordinates to the server
+
+                attack_response = self.client.receive_message() # receive the result of the attack (JSON)
+                print(attack_response) # print the attack response TODO delete me later!
+
+                game_turn = (game_turn % 2) + 1 # switch roles
+            else:
+                print("Waiting for player to attack")
+                response = self.client.receive_message() # receive the desired spot to hit from the server
+                print(response) # print the desired coordinates to attack TODO delete me later!
+
+                attack_info = self.attack_board(self.board, response) # attack the board TODO make sure this method attacks enemy
+
+                print(attack_info) # print out the attack info TODO delete me later!
+                self.client.send_message(attack_info) # send the attack info to the server
+
+                game_turn = (game_turn % 2) + 1 # switch roles
 
 def main():
-  # Get the server IP
-  server_ip = sys.argv[1]
-  port_number = int(sys.argv[2])
+  if len(sys.argv) < 3:
+    print("Error: must specify server IP and port number")
+    sys.exit(1)
+
+  server_ip = sys.argv[1] # get the server IP
+  port_number = int(sys.argv[2]) # get the port number
 
   battleship = BattleShip(server_ip, port_number)
   battleship.play()
