@@ -195,6 +195,10 @@ class BattleShip:
             if self.player_number == game_turn:
                 coordinates = self.get_coordinate_input('Enter a location to attack: ')
 
+                while not self.is_valid_attack_coordinates(coordinates):
+                    print('Invalid coordinates')
+                    coordinates = self.get_coordinate_input('Enter a location to attack: ')
+
                 self.client.send_message(coordinates)
 
                 attack_response = self.client.receive_message() # receive the result of the attack
@@ -279,6 +283,21 @@ class BattleShip:
         return attack_info
 
         # return target_square.state
+    
+    def is_valid_attack_coordinates(self, coordinates):
+        xaxis = coordinates[0]
+        yaxis = coordinates[1]
+        
+        # check if the coordinates are within the valid range
+        if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
+            return False
+
+        # check if the square has already been attacked
+        target_square = self.board.battlefield[xaxis][yaxis]
+        if target_square.state != Square_State.NOT_TOUCHED:
+            return False
+
+        return True
 
 def main():
   # Get the server IP
