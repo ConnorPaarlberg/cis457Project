@@ -172,7 +172,10 @@ class Board:
                 print_list.append("|")
                 current_square_state = self.battlefield[i][j].ship
                 if current_square_state == None:
-                    print_list.append("--")
+                    if self.battlefield[i][j].state == Square_State.HIT:
+                        print_list.append("??")
+                    else:
+                        print_list.append("--")
                 else:
                     # use the first two letters of the ship name
                     print_list.append(current_square_state.name[:2].upper())
@@ -218,7 +221,7 @@ class BattleShip:
         else: return False
 
     def build_board(self):
-        for ship in self.SHIPS:
+        for ship in self.board.SHIPS:
             self.board.print_board_ships()
             message = f"Where should the {ship.name.lower()} go?"
             location = self.get_coordinate_input(message)
@@ -244,7 +247,7 @@ class BattleShip:
             target_square.square_attacked()
             if self.board.check_dead_board() == True:
                 print("The board is now dead")
-                self.state = Board_State.DEAD
+                self.board.state = Board_State.DEAD
 
         else:
             print("This square has already been revealed!")
@@ -297,30 +300,37 @@ class BattleShip:
         given_square_state_info = attack_info["attack_status"]
 
         if given_square_state_info == "HIT":
-            opponent_square.state == Square_State.HIT
+            opponent_square.state = Square_State.HIT
         else:
-            opponent_square.state == Square_State.MISS
+            opponent_square.state = Square_State.MISS
 
         # Second we only reveal the ship, if we know that we have sunk it
-        ship_info = attack_info["ship_info"]["name"]
+        ship_information = attack_info["ship_info"]
 
         # if ship_info exists
-        if ship_info:
-
+        if ship_information:
+            
             # If the ship we hit has sunk, we mark it down on our board
-            if ship_info["is_sunk"]:
-                coordinate = attack_info["coordinate_of_attack"]
-                ship_name = attack_info["ship_info"]["name"]
+            if ship_information["is_sunk"]:
+                coordinate = ship_information["start_coords"]
+                ship_name = ship_information["name"]
                 ship_length = Board.Ship_length_dict[ship_name]
 
                 ship = Ship(ship_name,ship_length)
 
-                vert_bool = attack_info["end_coords"][0] > attack_info["start_coords"][0]
+                vert_bool = ship_information["end_coords"][0] > ship_information["start_coords"][0]
                 self.opponent_board.place_ship_on_board(coordinate,ship,ship_length,vert_bool)
+
+        print("___Opponent Board State_____")
+        self.opponent_board.print_board_state()
+
+        print("___Opponent Known Ships ____")
+        self.opponent_board.print_board_ships()
 
         if attack_info["board_state"] == "DEAD":
             print("YOU WIN") 
             #TODO Leaves the connection or play again, not sure yet
+        
 
 
         
@@ -346,6 +356,7 @@ class BattleShip:
                 print(attack_response) # print the attack response TODO delete me later!
 
                 self.adjust_board_after_attack(attack_response)
+
 
                 game_turn = (game_turn % 2) + 1 # switch roles
             else:
