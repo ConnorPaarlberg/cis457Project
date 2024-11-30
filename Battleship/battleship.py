@@ -48,13 +48,18 @@ class Square:
     def square_attacked(self):
         if self.ship != None:
             self.state = Square_State.HIT
+            self.ship.hit()
         else:
             self.state = Square_State.MISS
         return self.state
 
 class Board:
-    SHIPS = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
-        Square_SHIP.DESTROYER]
+    # the list of ships on the board
+    SHIPS = [Ship('carrier', 5),
+                    Ship('battleship', 4),
+                    Ship('cruiser', 3),
+                    Ship('submarine', 3),
+                    Ship('destroyer', 2)]
     def __init__(self):
 
         # Initializing the state and squares of the board, 10 X 10 squares
@@ -64,7 +69,7 @@ class Board:
         self.number_of_ships_placed = 0
 
     def check_dead_board(self):
-        total_ship_health = sum(ship.health for ship in self.SHIPS)
+        total_ship_health = sum(ship.health for ship in Board.SHIPS)
         if total_ship_health == 0:
             return True
         return False
@@ -157,10 +162,7 @@ class Board:
                 print_list.append("|")
                 current_square_state = self.battlefield[i][j].ship
                 if current_square_state == None:
-                    if self.battlefield[i][j].state == Square_State.HIT:
-                        print_list.append("??")
-                    else:
-                        print_list.append("--")
+                    print_list.append("--")
                 else:
                     # use the first two letters of the ship name
                     print_list.append(current_square_state.name[:2].upper())
@@ -175,61 +177,6 @@ class BattleShip:
         # self.gui = Gui() # the gui for displaying the game
         self.client = Client(server_ip, port_number) # the client
         self.player_number = self.client.receive_message() # receive the player id
-        self.player_number = self.client.receive_message(receiving_player_id=True) # receive the player number
-
-        self.ships = [Square_SHIP.CARRIER, Square_SHIP.BATTLESHIP, Square_SHIP.CRUISER, Square_SHIP.SUBMARINE, 
-        Square_SHIP.DESTROYER]
-        self.player_number = self.client.receive_message() # receive the player id
-    
-    def play(self):
-        # self.gui.run()
-
-        self.build_board() # build the game board
-        game_turn = 1 # player 1 always has first turn
-
-        # core game loop
-        while self.board.state == Board_State.ALIVE:
-            if self.player_number == game_turn:
-                coordinates = self.get_coordinate_input('Enter a location to attack: ')
-
-                while not self.is_valid_attack_coordinates(coordinates):
-                    print('Invalid coordinates')
-                    coordinates = self.get_coordinate_input('Enter a location to attack: ')
-
-                self.client.send_message(coordinates)
-
-                attack_response = self.client.receive_message() # receive the result of the attack
-                print(attack_response)
-
-                game_turn = (game_turn % 2) + 1
-            else:
-                print("Waiting for player to attack")
-                response = self.client.receive_message() # receive the desired spot to hit
-                
-                x = response[0]
-                y = response[1]
-                print(x, y)
-
-                attack = self.attack_board(self.board, response) # attack the board
-                print(attack) # print out the attack
-
-                self.client.send_message(attack)
-
-                game_turn = (game_turn % 2) + 1
-        
-
-        # while self.board.state == Board_State.ALIVE:
-            
-        # opponent_board = self.client.receive_message("JSON")
-        # print(opponent_board)
-
-        # while self.board.state == Board_State.ALIVE: 
-        #     self.attack_board(self.board)
-        #     self.board.print_board_ships()
-        #     self.board.print_board_state()
-
-        #     # # Print the size of the JSON data in bytes
-        #     # print("Size of JSON data:", sys.getsizeof(json_data))
 
     def get_coordinate_input(self, message):
         if len(message) > 0:
@@ -273,7 +220,6 @@ class BattleShip:
         self.board.print_board_ships()
     
     def attack_board(self, target_board, target_coordinates):
-        #TODO Check for valid location
         xaxis = target_coordinates[0]
         yaxis = target_coordinates[1]
 
@@ -281,7 +227,9 @@ class BattleShip:
 
         if target_square.state == Square_State.NOT_TOUCHED:
             target_square.square_attacked()
-            target_board.decrement_ship_health(target_square.ship)
+            if self.board.check_dead_board() == True:
+                print("The board is now dead")
+                self.state = Board_State.DEAD
 
         else:
             print("This square has already been revealed!")
@@ -309,58 +257,36 @@ class BattleShip:
         xaxis = coordinates[0]
         yaxis = coordinates[1]
         
+        # the json that will be sent containing all relevant information
+        attack_info = {
+            #TODO: replace this with board-state of copy board
+            "board_state": self.board.state.name, # add the board state to the attack info
+            "attack_status": target_square.state.name, # the status of the attack (hit/miss)
+            "ship_info": {
+                "name": target_square.ship.name,
+                "start_coords": target_square.ship.get_start_coords(),
+                "end_coords": target_square.ship.get_end_coords(),
+                "is_sunk": target_square.ship.is_sunk()
+            } if target_square.ship else None, # only ship info if there is actually a ship on that square (could be none)
+        }
+        return attack_info
+    
+    def is_valid_attack_coordinates(self, coordinates):
+        xaxis = coordinates[0]
+        yaxis = coordinates[1]
+        
         # check if the coordinates are within the valid range
         if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
             return False
 
+        #TODO: change this to the copy board so we check if it is a valid attack on their board
         # check if the square has already been attacked
-        target_square = self.opponent_board.battlefield[xaxis][yaxis]
+        target_square = self.board.battlefield[xaxis][yaxis]
         if target_square.state != Square_State.NOT_TOUCHED:
             return False
 
         return True
     
-    """
-    Function that takes in the attack_info JSON and adjusts the player's boards
-    """
-    def adjust_board_after_attack(self, attack_info):
-
-        # Set variables for the opponent square
-        coordinate_xaxis = attack_info["coordinate_of_attack"][0]
-        coordinate_yaxis = attack_info["coordinate_of_attack"][1]
-        opponent_square = self.opponent_board.battlefield[coordinate_xaxis][coordinate_yaxis]
-
-        # First we adjust our opponent_board's coordinate to check if it hit or not
-        given_square_state_info = attack_info["attack_status"]
-
-        if given_square_state_info == "HIT":
-            opponent_square.state = Square_State.HIT
-        else:
-            opponent_square.state = Square_State.MISS
-
-        # Second we only reveal the ship, if we know that we have sunk it
-        ship_information = attack_info["ship_info"]
-
-        # if ship_info exists
-        if ship_information:
-            
-            # If the ship we hit has sunk, we mark it down on our board
-            if ship_information["is_sunk"]:
-                coordinate = ship_information["start_coords"]
-                ship_name = ship_information["name"]
-                ship_length = Board.Ship_length_dict[ship_name]
-
-                ship = Ship(ship_name,ship_length)
-
-                vert_bool = ship_information["end_coords"][0] > ship_information["start_coords"][0]
-                self.opponent_board.place_ship_on_board(coordinate,ship,ship_length,vert_bool)
-
-        print("___Opponent Board State_____")
-        self.opponent_board.print_board_state()
-
-        print("___Opponent Known Ships ____")
-        self.opponent_board.print_board_ships() 
-        
     def play(self):
         # self.gui.run()
 
@@ -379,54 +305,20 @@ class BattleShip:
                 self.client.send_message(coordinates) # send the coordinates to the server
 
                 attack_response = self.client.receive_message() # receive the result of the attack (JSON)
-
-                self.adjust_board_after_attack(attack_response)
-
-                if 'board_state' in attack_response and attack_response['board_state'] == 'DEAD':
-                    # send the attack response back to the server so that it knows you are ready to quit
-                    self.client.send_message(attack_response)
-                    print("YOU WIN")
-                    break
+                print(attack_response) # print the attack response TODO delete me later!
 
                 game_turn = (game_turn % 2) + 1 # switch roles
             else:
                 print("Waiting for player to attack")
                 response = self.client.receive_message() # receive the desired spot to hit from the server
+                print(response) # print the desired coordinates to attack TODO delete me later!
 
-                attack_info = self.attack_board(self.board, response) # attack the board
+                attack_info = self.attack_board(self.board, response) # attack the board TODO make sure this method attacks enemy
+
+                print(attack_info) # print out the attack info TODO delete me later!
                 self.client.send_message(attack_info) # send the attack info to the server
 
-                if 'board_state' in attack_info and attack_info['board_state'] == 'DEAD':
-                    print("YOU LOSE")
-                    break
-
                 game_turn = (game_turn % 2) + 1 # switch roles
-        
-        self.client.close_socket() # close the socket after the game is over
-        return target_square.state
-        attack_info = {
-            "attack_status": target_square.state.name,
-            # "ship_destroyed": destroyed_ship.name if destroyed_ship else None,
-            # "destroyed_ship_coords": destroyed_ship_coords if destroyed_ship_coords else None,
-        }
-        return attack_info
-
-        # return target_square.state
-    
-    def is_valid_attack_coordinates(self, coordinates):
-        xaxis = coordinates[0]
-        yaxis = coordinates[1]
-        
-        # check if the coordinates are within the valid range
-        if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
-            return False
-
-        # check if the square has already been attacked
-        target_square = self.board.battlefield[xaxis][yaxis]
-        if target_square.state != Square_State.NOT_TOUCHED:
-            return False
-
-        return True
 
 def main():
   if len(sys.argv) < 3:
