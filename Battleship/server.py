@@ -3,6 +3,7 @@ import socket
 import struct
 import threading
 import json
+import json
 
 class Server:
   player_id = 1
@@ -21,18 +22,17 @@ class Server:
   def handle_client(self, client_socket, client_address):
     print(f"Connected to {client_address}")
 
-    data = struct.pack('!i', Server.player_id) # pack the player id
-    client_socket.send(data) # send the player id
+    self.send_message(client_socket, Server.player_id) # send the player ID to the client
     Server.player_id += 1 # increment the player ID
 
     while not self.quit_event.is_set():
-      # Receive the message
-      message = client_socket.recv(8)
+      # receive the message
+      message = self.receive_message(client_socket)
 
       # send the message to the other client
       for connected_socket in self.clients:
         if client_socket != connected_socket:
-          connected_socket.send(message)
+          self.send_message(connected_socket, message)
 
       # if message == 'exit':
       #   break
@@ -42,6 +42,22 @@ class Server:
     # client_socket.close() # close the connection
     # print(f"Connection to {client_address} closed")
   
+  def send_message(self, client_socket, data):
+    message = json.dumps(data).encode('utf-8') # encode the message into json
+    length = struct.pack('!I', len(message))   # pack the length into a big-endian, unsigned integer
+
+    client_socket.sendall(length + message) # send the length and message
+
+  def receive_message(self, client_socket):
+    length_bytes = client_socket.recv(4) # read 4 bytes for the length
+    length = struct.unpack('!I', length_bytes)[0] # unpack the length
+
+    message = client_socket.recv(length) # read the appropriate number of bytes
+
+    message = json.loads(message.decode('utf-8')) # decode the message to a string and convert it back to a Python object
+
+    return message # return the response
+
   def run(self):
     print("Server is running...")
 
@@ -61,8 +77,8 @@ class Server:
       thread.join() # join each thread (good practice)
 
 def main():
-  if len(sys.argv) < 2:
-    print("Error: must specify desired port number")
+  if len(sys.argv) < 3:
+    print("Error: must specify server port number & number of clients")
     sys.exit(1)
 
   port_number = int(sys.argv[1]) # cast port number to an int
