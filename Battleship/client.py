@@ -25,3 +25,6 @@ class Client:
     message = json.loads(message.decode('utf-8')) # decode the message to a string and convert it back to a Python object
 
     return message # return the received message
+
+  def close_socket(self):
+    self.socket.close()

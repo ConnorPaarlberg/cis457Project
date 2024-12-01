@@ -35,10 +35,10 @@ class Server:
       if 'board_state' in message and message['board_state'] == 'DEAD':
         break
 
-    # self.quit_event.set() # signal to quit
-    # self.clients.remove(client_socket)
-    # client_socket.close() # close the connection
-    # print(f"Connection to {client_address} closed")
+    self.quit_event.set() # signal to quit
+    self.clients.remove(client_socket) # remove the socket from the client sockets list
+    client_socket.close() # close the connection
+    print(f"Connection to {client_address} closed")
   
   def send_message(self, client_socket, data):
     message = json.dumps(data).encode('utf-8') # encode the message into json
