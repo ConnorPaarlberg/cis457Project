@@ -273,10 +273,17 @@ class BattleShip:
             yaxis = int(coordinates[1])
         except Exception:
             print("Invalid Input")
+            return self.get_coordinate_input(message)
 
         else:
-            if(xaxis > 9 or xaxis < 0 or yaxis > 9 or yaxis < 0):
+            # check if the coordinates are within the valid range
+            if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
                 print("Coordinates not on board")
+                return self.get_coordinate_input(message)
+            # check if the square has already been attacked
+            target_square = self.opponent_board.battlefield[xaxis][yaxis]
+            if target_square.state != Square_State.NOT_TOUCHED:
+                print("This square has already been revealed")
                 return self.get_coordinate_input(message)
             else:
                 return [xaxis,yaxis]
@@ -311,13 +318,9 @@ class BattleShip:
 
         target_square = target_board.battlefield[xaxis][yaxis]
 
-        if target_square.state == Square_State.NOT_TOUCHED:
-            target_square.square_attacked()
-            if self.board.check_dead_board() == True:
-                self.board.state = Board_State.DEAD
-
-        else:
-            print("This square has already been revealed!")
+        target_square.square_attacked()
+        if self.board.check_dead_board() == True:
+            self.board.state = Board_State.DEAD
         
         # the json that will be sent containing all relevant information
         attack_info = {
@@ -333,25 +336,6 @@ class BattleShip:
             } if target_square.ship else None, # only ship info if there is actually a ship on that square (could be none)
         }
         return attack_info
-    
-
-    """
-    Check if the spot your targetting is valid based on your copy of the opponent's board
-    """
-    def is_valid_attack_coordinates(self, coordinates):
-        xaxis = coordinates[0]
-        yaxis = coordinates[1]
-        
-        # check if the coordinates are within the valid range
-        if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
-            return False
-
-        # check if the square has already been attacked
-        target_square = self.opponent_board.battlefield[xaxis][yaxis]
-        if target_square.state != Square_State.NOT_TOUCHED:
-            return False
-
-        return True
     
     """
     Function that takes in the attack_info JSON and adjusts the player's boards
@@ -403,11 +387,8 @@ class BattleShip:
         # core game loop
         while self.board.state == Board_State.ALIVE:
             if self.player_number == game_turn:
-                # loop until a valid coordinate has been entered on the enemy's board
+                # loop until a valid coordinate has been entered on the enemy's board (happens inside method)
                 coordinates = self.get_coordinate_input('Enter a location to attack: ')
-                while not self.is_valid_attack_coordinates(coordinates):
-                    print('Invalid coordinates')
-                    coordinates = self.get_coordinate_input('Enter a location to attack: ')
 
                 self.client.send_message(coordinates) # send the coordinates to the server
 
