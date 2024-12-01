@@ -181,6 +181,76 @@ class Board:
             print_list.append("\n")
         print("".join(print_list))
 
+    # Only call this board if it's for your copy of the opponent board
+    def print_opponent_board(self):
+        print_list = []
+        print_column_list = ["  "]
+        column_counter = 0
+
+        for i in range(10):
+            print_column_list.append(str(column_counter))
+            print_column_list.append("  ")
+            column_counter += 1
+        print("".join(print_column_list))
+
+
+        for i in range(10):
+            print_list.append(str(i))
+            for j in range(10):
+                print_list.append("|")
+                current_square = self.battlefield[i][j]
+                cs_ship = current_square.ship
+                cs_state = current_square.state
+                if cs_ship == None:
+                    if cs_state == Square_State.HIT:
+                        print_list.append("OO")
+                    elif cs_state == Square_State.MISS:
+                        print_list.append("XX")
+                    else:
+                        print_list.append("--")
+                else:
+                    # use the first two letters of the ship name
+                    print_list.append(cs_ship.name[:2].upper())
+            print_list.append("|")
+            print_list.append("\n")
+        print("".join(print_list))
+
+    # Only call this board to look at the current state of your board
+    def print_player_board(self):
+        print_list = []
+        print_column_list = ["  "]
+        column_counter = 0
+
+        for i in range(10):
+            print_column_list.append(str(column_counter))
+            print_column_list.append("  ")
+            column_counter += 1
+        print("".join(print_column_list))
+
+
+        for i in range(10):
+            print_list.append(str(i))
+            for j in range(10):
+                print_list.append("|")
+                current_square = self.battlefield[i][j]
+                cs_ship = current_square.ship
+                cs_state = current_square.state
+                if cs_ship == None:
+                    if cs_state == Square_State.MISS:
+                        print_list.append("XX")
+                    else:
+                        print_list.append("--")
+                else:
+                    if cs_state == Square_State.HIT:
+                        print_list.append("OO")
+                    else:
+                        # use the first two letters of the ship name
+                        print_list.append(cs_ship.name[:2].upper())
+            print_list.append("|")
+            print_list.append("\n")
+        print("".join(print_list))
+
+
 class BattleShip:
     def __init__(self, server_ip, port_number):
         self.board = Board() # the game board
@@ -320,10 +390,11 @@ class BattleShip:
                 self.opponent_board.place_ship_on_board(coordinate,ship,ship_length,vert_bool)
 
         print("___Opponent Board State_____")
-        self.opponent_board.print_board_state()
+        self.opponent_board.print_opponent_board()
 
-        print("___Opponent Known Ships ____")
-        self.opponent_board.print_board_ships()
+        print("__Your Board___")
+        self.board.print_player_board()
+        print("")
 
         if attack_info["board_state"] == "DEAD":
             print("YOU WIN") 
