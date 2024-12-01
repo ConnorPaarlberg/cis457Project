@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from enum import Enum
 from gui import Gui
 from client import Client
@@ -223,7 +221,7 @@ class BattleShip:
     def build_board(self):
         for ship in self.board.SHIPS:
             self.board.print_board_ships()
-            message = f"Where should the {ship.name.lower()} go?"
+            message = input("Where should the {ship.name.lower()} go?").split()
             location = self.get_coordinate_input(message)
             length = ship.length
 
@@ -382,4 +380,3 @@ def main():
 
 if __name__ == "__main__":
     main()
->>>>>>> 4083069 (added error checking for if desired attack coordinates are valid)
