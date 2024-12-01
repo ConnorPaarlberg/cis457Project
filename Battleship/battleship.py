@@ -263,9 +263,10 @@ class BattleShip:
         if len(message) > 0:
             print(message)
 
-        coordinates = input().split(' ')
+        # strip() removes any spaces at beginning and end of input
+        coordinates = input().strip().split(' ')
         if len(coordinates) != 2:
-            print("Invalid Input")
+            print("Invalid Input. Try again...")
             return self.get_coordinate_input(message)
 
         try:
@@ -290,7 +291,10 @@ class BattleShip:
         
     def get_vertical_bool(self):
         print("Are you placing it vertically? (y/n)")
-        vertical_bool = input()
+        # strip() removes any spaces at beginning and end of input
+        vertical_bool = input().strip()
+        while vertical_bool != 'y' and vertical_bool != 'n':
+            vertical_bool = input("Invalid input. Try again...").strip()
         if vertical_bool == 'y':
             return True
         else: return False
