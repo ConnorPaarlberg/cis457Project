@@ -246,7 +246,6 @@ class BattleShip:
         if target_square.state == Square_State.NOT_TOUCHED:
             target_square.square_attacked()
             if self.board.check_dead_board() == True:
-                print("The board is now dead")
                 self.board.state = Board_State.DEAD
 
         else:
@@ -325,16 +324,8 @@ class BattleShip:
         self.opponent_board.print_board_state()
 
         print("___Opponent Known Ships ____")
-        self.opponent_board.print_board_ships()
-
-        if attack_info["board_state"] == "DEAD":
-            print("YOU WIN") 
-            #TODO Leaves the connection or play again, not sure yet
+        self.opponent_board.print_board_ships() 
         
-
-
-        
-    
     def play(self):
         # self.gui.run()
 
@@ -353,25 +344,30 @@ class BattleShip:
                 self.client.send_message(coordinates) # send the coordinates to the server
 
                 attack_response = self.client.receive_message() # receive the result of the attack (JSON)
-                print(attack_response) # print the attack response TODO delete me later!
 
                 self.adjust_board_after_attack(attack_response)
 
+                if 'board_state' in attack_response and attack_response['board_state'] == 'DEAD':
+                    # send the attack response back to the server so that it knows you are ready to quit
+                    self.client.send_message(attack_response)
+                    print("YOU WIN")
+                    break
 
                 game_turn = (game_turn % 2) + 1 # switch roles
             else:
                 print("Waiting for player to attack")
                 response = self.client.receive_message() # receive the desired spot to hit from the server
-                print(response) # print the desired coordinates to attack TODO delete me later!
 
-                attack_info = self.attack_board(self.board, response) # attack the board TODO make sure this method attacks enemy
-
-                print(attack_info) # print out the attack info TODO delete me later!
+                attack_info = self.attack_board(self.board, response) # attack the board
                 self.client.send_message(attack_info) # send the attack info to the server
 
-
+                if 'board_state' in attack_info and attack_info['board_state'] == 'DEAD':
+                    print("YOU LOSE")
+                    break
 
                 game_turn = (game_turn % 2) + 1 # switch roles
+        
+        self.client.close_socket() # close the socket after the game is over
 
 def main():
   if len(sys.argv) < 3:
