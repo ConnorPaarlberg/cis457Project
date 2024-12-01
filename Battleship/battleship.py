@@ -263,27 +263,32 @@ class BattleShip:
         if len(message) > 0:
             print(message)
 
-        coordinates = input().split(' ')
+        # strip() removes any spaces at beginning and end of input
+        coordinates = input().strip().split(' ')
         if len(coordinates) != 2:
-            print("Invalid Input")
+            print("Invalid Input. Try again...")
             return self.get_coordinate_input(message)
 
         try:
             xaxis = int(coordinates[0])
             yaxis = int(coordinates[1])
         except Exception:
-            print("Invalid Input")
+            print("Invalid Input. Try again...")
+            return self.get_coordinate_input(message)
 
         else:
             if(xaxis > 9 or xaxis < 0 or yaxis > 9 or yaxis < 0):
-                print("Coordinates not on board")
+                print("Coordinates not on board. Try again...")
                 return self.get_coordinate_input(message)
             else:
                 return [xaxis,yaxis]
         
     def get_vertical_bool(self):
         print("Are you placing it vertically? (y/n)")
-        vertical_bool = input()
+        # strip() removes any spaces at beginning and end of input
+        vertical_bool = input().strip()
+        while vertical_bool != 'y' and vertical_bool != 'n':
+            vertical_bool = input("Invalid input. Try again...").strip()
         if vertical_bool == 'y':
             return True
         else: return False
@@ -341,10 +346,6 @@ class BattleShip:
     def is_valid_attack_coordinates(self, coordinates):
         xaxis = coordinates[0]
         yaxis = coordinates[1]
-        
-        # check if the coordinates are within the valid range
-        if xaxis < 0 or xaxis > 9 or yaxis < 0 or yaxis > 9:
-            return False
 
         # check if the square has already been attacked
         target_square = self.opponent_board.battlefield[xaxis][yaxis]
@@ -403,11 +404,8 @@ class BattleShip:
         # core game loop
         while self.board.state == Board_State.ALIVE:
             if self.player_number == game_turn:
-                # loop until a valid coordinate has been entered on the enemy's board
+                # get_coordinate_input checks for a valid input. Reprompts user if not valid
                 coordinates = self.get_coordinate_input('Enter a location to attack: ')
-                while not self.is_valid_attack_coordinates(coordinates):
-                    print('Invalid coordinates')
-                    coordinates = self.get_coordinate_input('Enter a location to attack: ')
 
                 self.client.send_message(coordinates) # send the coordinates to the server
 
