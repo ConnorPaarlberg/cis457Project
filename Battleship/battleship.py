@@ -1,5 +1,4 @@
 from enum import Enum
-from gui import Gui
 from client import Client
 import sys
 
@@ -129,8 +128,6 @@ class Board:
                         self.battlefield[row][column+i].ship = ship
                         self.number_of_ships_placed += 1
         if Invalid_Input or not ship_available:
-            print(Invalid_Input)
-            print(ship_available)
             return False
         return True
          
@@ -255,7 +252,6 @@ class BattleShip:
     def __init__(self, server_ip, port_number):
         self.board = Board() # the game board
         self.opponent_board = Board() # opponent board with less info
-        # self.gui = Gui() # the gui for displaying the game
         self.client = Client(server_ip, port_number) # the client
         self.player_number = self.client.receive_message() # receive the player id
 
@@ -328,7 +324,6 @@ class BattleShip:
         
         # the json that will be sent containing all relevant information
         attack_info = {
-            #TODO: replace this with board-state of copy board
             "board_state": self.board.state.name, # add the board state to the attack info
             "attack_status": target_square.state.name, # the status of the attack (hit/miss)
             "coordinate_of_attack": target_coordinates,
@@ -342,9 +337,9 @@ class BattleShip:
         return attack_info
     
     """
-    Function that takes in the attack_info JSON and adjusts the player's boards
+    Function that takes in the attack_response JSON and adjusts the opponents board
     """
-    def adjust_board_after_attack(self, attack_info):
+    def adjust_opponent_board(self, attack_info):
 
         # Set variables for the opponent square
         coordinate_xaxis = attack_info["coordinate_of_attack"][0]
@@ -381,10 +376,32 @@ class BattleShip:
 
         print("___Player Board State_____")
         self.board.print_player_board()
+
+    """
+    Function that takes in the attack_info JSON and adjusts the player board
+    """
+    def adjust_player_board(self, attack_info):
+
+        # Set variables for the player board square
+        coordinate_xaxis = attack_info["coordinate_of_attack"][0]
+        coordinate_yaxis = attack_info["coordinate_of_attack"][1]
+        board_square = self.board.battlefield[coordinate_xaxis][coordinate_yaxis]
+
+        # First we adjust our player board coordinate to check if it hit or not
+        given_square_state_info = attack_info["attack_status"]
+
+        if given_square_state_info == "HIT":
+            board_square.state = Square_State.HIT
+        else:
+            board_square.state = Square_State.MISS
+
+        print("___Opponent Board State_____")
+        self.opponent_board.print_opponent_board()
+
+        print("___Player Board State_____")
+        self.board.print_player_board()
         
     def play(self):
-        # self.gui.run()
-
         self.build_board() # build the game board
         game_turn = 1 # player 1 always has first turn
 
@@ -398,7 +415,7 @@ class BattleShip:
 
                 attack_response = self.client.receive_message() # receive the result of the attack (JSON)
 
-                self.adjust_board_after_attack(attack_response)
+                self.adjust_opponent_board(attack_response)
 
                 if 'board_state' in attack_response and attack_response['board_state'] == 'DEAD':
                     # send the attack response back to the server so that it knows you are ready to quit
@@ -412,6 +429,7 @@ class BattleShip:
                 response = self.client.receive_message() # receive the desired spot to hit from the server
 
                 attack_info = self.attack_board(self.board, response) # attack the board
+                self.adjust_player_board(attack_info)
                 self.client.send_message(attack_info) # send the attack info to the server
 
                 if 'board_state' in attack_info and attack_info['board_state'] == 'DEAD':
